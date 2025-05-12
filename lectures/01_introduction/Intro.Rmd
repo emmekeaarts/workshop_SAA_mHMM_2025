@@ -1,8 +1,8 @@
 ---
 title: "Introduction"
 subtitle: "The multilevel hidden Markov model"
-author: "Dr. Emmeke Aarts [e.aarts@uu.nl] <br> Pre-conference workshop for the International Conference on Multilevel Analysis "
-date: "March 11, 2024"
+author: "Emmeke Aarts, Jonas Haslbeck, Pepijn Vink <br> <br>Post-conference workshop for the SAA 2025, Leuven "
+date: "May 29, 2025"
 output: 
   ioslides_presentation:
     css: style.css
@@ -29,7 +29,7 @@ Uniquely suited to provide detailed information on psychological and behavioral 
 - Ambulatory assessments (AA)
 - Sensors
 
-54 publications indexed on PubMed in 2000, rising to 984 and 1203 publications in 2020 and 2021.
+publications using ILD increased from ~250 to >2.500 between 2000 and 2023 (PubMed)
 </div>
 <div style = "float: right; width: 40%;">
 <div align="left">
@@ -40,6 +40,63 @@ Uniquely suited to provide detailed information on psychological and behavioral 
 </div>
 
 
+## Analyzing ILD data 
+
+Most popular model: (multilevel) vector autoregressive (VAR) model
+
+<div style = "float: left; width: 50%;">
+
+VAR model: stable process in which a system is perturbed by outside influences.
+
+We study how quickly the process returns to the single equilibrium point (e.g., the mean). 
+
+Example: emotion regulation.
+
+</div>
+
+<div style = "float: right; width: 50%;">
+<div align="left">
+<img src="./figures/VAR example.png" width=400><br>
+<font size="2">McNeish & Hamaker, 2019. </font> 
+</div>
+</div>
+
+
+## Analyzing ILD data 
+
+But, what if the process switches between multiple phases, associated with different experiences? 
+
+Conceptual framework: e.g., dynamical systems that switch between a number of equilibrium points
+
+Example: depression, bipolar disorder, ... . 
+
+<div align="center">
+<img src="./figures/Dynamical system example.png" width=700><br>
+<font size="2">Helmich et al., 2024 </font> 
+</div>
+
+
+## Analyzing ILD data 
+
+Empirical data underline $\rightarrow$ a single equilibrium point does not always provide appropriate reflection of the data: 
+
+- multimodality detected in weekly symptom data (Hosenfeld et al., 2015). 
+- multimodality and skewness frequently detected in EMA emotion measurements  
+    - Haslbeck et al., 2022: 14%–40% across studies exhibited a unimodal symmetric distribution.
+
+
+
+## Theory driven preference for HMMs
+
+Advantages of modelling a process that switches between multiple (latent) categorical states:
+
+- quantify the dynamics over time  
+    - probability of staying in same mood state  
+        - e.g., high durations of a depressed mood state
+    - if one exits a mood state, which mood state is the individual likely to switch to next? 
+- empirically derived composition of (mood) states
+- derive the most likely sequence of (mood) states over time for each individual
+
 
 ---
 
@@ -47,7 +104,7 @@ Uniquely suited to provide detailed information on psychological and behavioral 
 <br>
 <br>
 <br>
-<font size="10"> **Empirical example I**</font>
+<font size="10"> **Empirical example**</font>
 <br>
 <br>
 <br>
@@ -64,30 +121,25 @@ Uniquely suited to provide detailed information on psychological and behavioral 
 
 - 26 patients, 60 observations per patient per CAB factor
 
+## Capturing crisis dynamics using ESM data
 
-## Analyzing ILD data 
-
-Most popular statistical models for (emotion) time series:
-
-- the (multilevel) vector autoregressive (VAR) model
-- multilevel linear regression model 
-
-Statistical concern: multimodality and skewness are highly prevalent: "less than half of emotion measurements (14%–40% across studies) exhibited a unimodal symmetric distribution" (Haslbeck et al., 2023).
-
-Suggests the presence of multiple states, and the need for time series models that accommodates multimodality, such as hidden Markov models. 
+<div align="center">
+<br>
+<br>
+<img src="./figures/CAB distributions.png" width=900>
+</div>
 
 
 ## Theory driven preference for HMMs
 
-Current repeated measures and time series models aggregate across time points
+In the empirical example on suicidal crisis states: 
 
-However, we want to infer: 
+- How long does someone tend to stay in a low or high suicidal crisis state? 
+- If one exits a low suicicidal crisis state, does someone tend to switch directly to the highest suicidal crisis state, or (first) to an intermediate crisis state? 
+- What is the composition of the empirically derived suicidal crisis states?  
+    - e.g., what makes a state a high crisis state or a low crisis state? 
+- What is the sequence of suicidal crisis states over time for each individual? 
 
-- The dynamics over time in CAB crisis states
-- Distinct and ascending latent CAB crisis states over time 
-- The composition of the latent, multidimensional CAB crisis states
-- How much patients differ in their dynamics over time
-- Patient specific CAB crisis trajectories over time
 
 ## The hidden Markov model {.smaller}
 
@@ -136,16 +188,29 @@ Given example data, assume
 - Normal emission distribution: $P(y_{kt} | S_t) \sim N(\mu_{ki}, \sigma_{ki}^2)$
 - $y_{k.}$ are conditionally independent given $\{S_t : t = 1, 2, ..., T\}$ to accommodate multivariate data
 
-## HMM is suited for one sequence of data
-Analyzing data from multiple individuals: 
+## Conventional HMM: desinged for single sequence
+<div style = "float: left; width: 55%;">
+Analyzing data from multiple individuals
 
-- fit HMM to the data of each individual separately
-- fit one and the same HMM model to the data of all individuals 
-    - strong assumption: subjects do not differ with respect to HMM parameters 
-- explain some of the differences using covariates (e.g., R package depmixS4)
+<font size="5"> 
 
-- Does not allow (quantification of) natural variation (i.e., heterogeneity) between individuals
-- Does not allow for individual specific dynamics over time
+- A: strong assumption: individuals do not differ with respect to process dynamics
+- A: explain some of the differences using covariates (e.g., R package depmixS4)
+- B: composition of states not related over individuals, inefficient use of data 
+- A, B, and C do not allow for:  
+    - (quantification of) natural variation between individuals
+    - individual specific dynamics over time
+
+</font>
+</div>
+
+<div style = "float: right; width: 45%;">
+<div align="left">
+<img src="./figures/Fig_Illustration_Heter_EA.png" width=480><br>
+</div>
+</div>
+
+
 
 ## Extending the HMM to a multilevel framework
 Including a multilevel framework for the HMM, enables simultaneous estimation:
@@ -169,14 +234,31 @@ Adopt a Bayesian approach
 <div align="center">
 <br>
 <br>
-<img src="./figures/Emissions - group and patient.png" width=850>
+<img src="./figures/Emissions - group and patient NEW.png" width=850>
 </div>
 
 ## CAB crisis state dynamics 
 
 <div align="center">
-<br>
-<img src="./figures/transitions - group and patient.png" width=850>
+<img src="./figures/CAB state dynamics network V2 - group only.png" width=950>
+</div>
+
+## CAB crisis state dynamics 
+
+<div align="center">
+<img src="./figures/CAB state dynamics network V2 - 1 patient.png" width=950>
+</div>
+
+## CAB crisis state dynamics 
+
+<div align="center">
+<img src="./figures/CAB state dynamics network V2 - 2 patients.png" width=950>
+</div>
+
+## CAB crisis state dynamics 
+
+<div align="center">
+<img src="./figures/CAB state dynamics network V2 - full.png" width=950>
 </div>
 
 ## Personalized crisis trajectories 
@@ -195,108 +277,6 @@ Pairing fine grained ESM data with multilevel HMM, we
 - Observed considerable variation between patients, both in remaining within and transitioning between CAB crisis states
 - Highlighted the need for a personalized method 
 
-
----
-
-<div align="center">
-<br>
-<br>
-<br>
-<font size="10"> **Empirical example II**</font>
-<br>
-<br>
-<br>
-<br>
-<font size="6"> Nonverbal interpersonal interaction in patient-therapist dyads </font>
-</div>
-
-
-## Interaction in patient-therapist dyads
-
-39 patient-therapist dyads
-
-15 min annotated video recordings of therapy session
-
-<div align="center">
-<img src="./figures/example interaction data.png" width=730>
-</div>
-
-## Possible research questions
-
-- Can we extract latent interpersonal interaction states over time? 
-- What are the dynamics over time in interpersonal interaction states? 
-- Do patient-therapist dyads differ in their dynamics over time? 
-- Can this between dyad heterogeneity be explained by, for example, depression improvement? 
-
-## The hidden Markov model {.smaller}
-
-<div align="center">
-<img src="figures/HMM illustration_stats V2.png" width=1000>
-</div>
-
-HMM: probabilistic model to infer hidden states $S_t \in (1, 2, ..., m)$ at 
-
-- each time point $t = 1, 2, ..., T$ 
-- from the observed series $(y_{k1}, y_{k2}, ..., y_{kT})$ 
-- for dependent variable $k = 1, 2, ..., K$
-
-## The hidden Markov model {.smaller}
-
-<div align="center">
-<img src="figures/HMM illustration_stats V2.png" width=1000>
-</div>
-
-We assume:
-
-- observation $y_{qt}$ is generated by an underlying, latent state $S_t$, 
-- sequence of hidden states $\{S_t : t = 1, 2, ..., T\}$ forms a Markov chain: probability of switching to the next state $S_{t+1}$ only depends on the current state $S_t$: $P(S_{t_1} | S_t, S_{t-1}, ..., S_1 = P(S_{t+1} | S_t)$
-
-## The hidden Markov model {.smaller}
-
-<div align="center">
-<img src="figures/HMM illustration_stats V2.png" width=1000>
-</div>
-
-
-Two sets of parameters: 
-
-1) probability of transitioning between latent states $\gamma_{ij}=P(S_{t+1} = j | S_t = i)$  
-2) probability of emitting an observation given the current latent state $P(y_{kt} | S_t)$
-
-
-## The hidden Markov model {.smaller}
-
-<div align="center">
-<img src="figures/HMM illustration_stats V2.png" width=1000>
-</div>
-
-Given example data, assume 
-
-- categorical emission distribution: $P(y_{kt} | S_t) \sim Cat(\theta_{ki})$
-- $y_{k.}$ are conditionally independent given $\{S_t : t = 1, 2, ..., T\}$ to accommodate multivariate data
-
-## Three nonverbal communication states
-
-<div align="center">
-<img src="./figures/State composition V2.png" width=650>
-</div>
-
-## Dynamics in nonverbal communication 
-
-<div align="center">
-<br>
-<img src="./figures/State dynamics.png" width=450>
-</div>
-
-## Nonverbal communication state sequences
-
-<div align="center">
-<br>
-<img src="./figures/predicted states new - one patient.png" width=850>
-</div>
-
-
-## Interaction in patient-therapist dyads - conclusion
 
 
 ---
@@ -323,181 +303,214 @@ Given example data, assume
     - continuous, categorical and count multivariate data  
     - individual level covariates  
     - missing data in the dependent variable(s)
-- The package also includes functions for automated plotting, simulating data, and obtaining the most likely hidden state sequence for each individual using the Viterbi algorithm. 
+- includes functions for simulating data, obtaining the most likely hidden state sequence (Viterbi algorithm), and automated plotting. 
 
 ## mHMMbayes - Bayesian estimation 
 
 Advantages:
 
-- Bayesian methods yield many additional metrics, such as standard errors and credibility intervals, much harder to extract using frequentist methods.
+- Bayesian methods yield many additional metrics, such as standard errors and credibility intervals.
 - Relatively easy to handle missing data (assuming MAR).
-- Allowing incorporation of prior knowledge (through prior distribution specification) accommodates smaller sample sizes. 
+- Allows incorporation of prior knowledge (through prior distribution), accommodates smaller sample sizes. 
 - Adds flexibility, making it relatively easy to extent to more complex models. 
+
+## mHMMbayes - Bayesian estimation 
 
 Disadvantages: 
 
-- Label switching problem (more prominent in continuous and count data)
-- Solution: sensible starting values and weakly informative priors; (hyper-prior values for) $\bar{\mu}_i$ or $\bar{\lambda}_i$ ordered in a sensible manner given data and process
+- Label switching problem (more prominent in continuous and count data).
+- Solution: 
+    - sensible starting values
+    - weakly informative priors 
+    - (hyper-prior values for) $\bar{\mu}_i$ or $\bar{\lambda}_i$ ordered in a sensible manner given data and process.
 
 
-## mHMMbayes - Metropolis within Gibbs sampler
-
-1. Obtain forward probabilities $\alpha_{t(ni)} = Pr\big(O_1 = o_1, ..., O_t = o_t, S_t = i\big)$ for each subject using current values of subject specific model parameters.
-2. Sample hidden state sequences in backward manner using $\alpha_{t(ni)}$ and $\gamma_{nij}$.
-3. Given current subject-specific parameters, draw new group-level parameter estimates using Gibbs step
-4. Given 
-    - observed event sequence for each subject
-    - sampled hidden state sequence for each subject
-    - group-level parameter distributions
-    - draw new subject-specific parameters using RW Metropolis sampler
-5. Repeat step 1-4 a very large number of times
 
 ## The mHMMbayes package: an example
 
-39 patient-therapist dyads
-
-15 min annotated video recordings of therapy session
-
 <div align="center">
-<img src="figures/example interaction data.png" width=730>
+<br>
+<img src="./figures/CAB data.png" width=950>
 </div>
 
-## Fitting a simple model -- input
+26 patients, 60 observations per patient per CAB factor
 
-Fitting a 3 state multilevel hidden Markov model on the nonverbal data: 
+## Fitting a multilevel HMM -- input
+
+Fitting a 4 state multilevel hidden Markov model on the CAB crisis data: 
 
 ```{r settings and load 2 state model, include = FALSE}
 library(mHMMbayes)
 ## specifying general model properties:
-m <- 3     # number of hidden states
-n_dep <- 6     # number of dependent input variables
-q_emiss <- c(3, 2, 2, 3, 2, 2)   # number of categories within each dep var
+m <- 4     # number of hidden states
+n_dep <- 5     # number of dependent input variables
 
 # specifying starting values
 start_TM <- diag(.9, m)
 start_TM[lower.tri(start_TM) | upper.tri(start_TM)] <- .05
-start_EM <- list(matrix(c(0.70, 0.20, 0.10, # vocalizing therapist
-                           0.05, 0.90, 0.05,
-                           0.25, 0.70, 0.05), byrow = TRUE, nrow = m, ncol = q_emiss[1]), 
-                  matrix(c(0.15, 0.85, # looking therapist
-                           0.35, 0.65,
-                           0.30, 0.70), byrow = TRUE, nrow = m, ncol = q_emiss[2]), 
-                  matrix(c(0.80, 0.20, # leg therapist
-                           0.80, 0.20,
-                           0.80, 0.20), byrow = TRUE, nrow = m, ncol = q_emiss[3]), 
-                  matrix(c( 0.10, 0.80, 0.10, # vocalizing patient
-                            0.90, 0.05, 0.05,
-                           0.85, 0.05, 0.10), byrow = TRUE, nrow = m, ncol = q_emiss[4]), 
-                  matrix(c(0.30, 0.70, # looking patient
-                           0.10, 0.90,
-                           0.50, 0.50), byrow = TRUE, nrow = m, ncol = q_emiss[5]), 
-                  matrix(c(0.70, 0.30, # leg patient
-                           0.90, 0.10,
-                           0.35, 0.65), byrow = TRUE, nrow = m, ncol = q_emiss[6])) 
+start_EM <- 1
 
-out_3st <- readRDS("./data/out_vll_3st.rds")
-out_3st 
+load("./data/CSP_DNA_mHMM_4stc_V5.Rda")
+out_4st <- CSP_DNA_mHMM_4stc
+out_4st 
 ```
 
-```{r show specifying 2 state model, eval = FALSE, echo=TRUE}
+
+```{r show fitting 2 state model, eval = FALSE, echo=TRUE}
 library(mHMMbayes)
+
+# Run a model without covariate(s) and default prior for gamma:
+out_4st <- mHMM(s_data          = CAB_mHMM,
+                data_distr      = "continuous",
+                gen             = list(...),
+                start_val       = list(...),
+                emiss_hyp_prior = ...,
+                mcmc            = list(J = J, burn_in = burn_in))
+
+```
+
+
+## Fitting a multilevel HMM -- general properties
+
+```{r show specifying 2 state model, eval = FALSE, echo=TRUE}
 
 ## specifying general model properties:
  # number of states m
-m <- 3
+m <- 4
  # number of dependent variables
-n_dep <- 6
- # number of output categories for each dependent var
-q_emiss <- c(3, 2, 2, 3, 2, 2) 
+n_dep <- 5
+
+gen <- list(m = m, n_dep = n_dep)
 
 ``` 
 
-## Fitting a simple model -- input
-```{r, echo = TRUE}
-## specifying starting values
- # Start values of the TPM
-start_TM <- diag(.9, m)
-start_TM[lower.tri(start_TM) | upper.tri(start_TM)] <- .05
+## Fitting a multilevel HMM -- starting values 
 
- # Start values for the emission distribution
-start_EM <- list(matrix(c(0.70, 0.20, 0.10, # vocalizing therapist
-                           0.05, 0.90, 0.05,
-                           0.25, 0.70, 0.05), byrow = TRUE, nrow = m, ncol = q_emiss[1]), 
-                  matrix(c(0.15, 0.85, # looking therapist
-                           0.35, 0.65,
-                           0.30, 0.70), byrow = TRUE, nrow = m, ncol = q_emiss[2]), 
-                  matrix(c(0.80, 0.20, # leg therapist
-                           0.80, 0.20,
-                           0.80, 0.20), byrow = TRUE, nrow = m, ncol = q_emiss[3]) 
-                  # continue emission probs here for the three other variables
-                 ) 
+Needed for the first iteration of the 'forward algorithm' 
+$\rightarrow$ determining the probability of each state for each point in time for each individual 
+
+Can be based on: 
+
+- data driven approach $\rightarrow$ fitting a single HMM on the completely pooled data (e.g., using DepmixS4).
+- theory driven $\rightarrow$ given the process you are studying, the variables collected, and the scale of the variables, what are sensible  
+    - means (and SDs) for each of the states (e.g., a 'good' and 'bad' state), 
+    - transition probabilities. 
+- combination $\rightarrow$ combine theoretical considerations with information from (visual) exploration of the data. 
+
+## Fitting a multilevel HMM -- starting values 
+
+Starting values for the transition probability matrix 
+
+- values on the diagonal represent 'self-transitions'
+- off-diagonal values represent the probabilities to switch between states
+- usually, the diagonal is composed of larger values than the off-diagonal 
+- each row needs to sum to 1
+
+```{r, echo = TRUE, eval = FALSE}
+start_tpm <- matrix(c(..., ..., ..., ...,
+                      ..., ..., ..., ...,
+                      ..., ..., ..., ...,
+                      ..., ..., ..., ...), byrow = TRUE, ncol = m, nrow = m)
 ```
 
-## Fitting a simple model -- input
-```{r show fitting 2 state model, eval = FALSE, echo=TRUE}
-# Run a model without covariate(s) and default priors:
-out_3st <- mHMM(s_data = MHMM_nonverbal,
-                data_distr = "categorical",
-                gen = list(m = m, n_dep = n_dep, q_emiss = q_emiss),
-                start_val = c(list(start_TM), start_EMc),
-                mcmc = list(J = J, burn_in = burn_in))
+## Fitting a multilevel HMM -- starting values 
 
+Starting values for the transition probability matrix 
+
+> - values on the diagonal represent 'self-transitions'
+> - off-diagonal values represent the probabilities to switch between states
+> - usually, the diagonal is composed of larger values than the off-diagonal 
+> - each row needs to sum to 1
+
+```{r, echo = TRUE, eval = FALSE}
+start_tpm <- matrix(c(0.70, 0.10, 0.10, 0.10,
+                      0.10, 0.70, 0.10, 0.10,
+                      0.10, 0.10, 0.70, 0.10,
+                      0.10, 0.10, 0.10, 0.70), byrow = TRUE, ncol = m, nrow = m)
 ```
 
-## Model output -- print()
-```{r, echo=TRUE}
-out_3st
+```{r, echo = TRUE, eval = FALSE}
+start_tpm <- matrix(c(0.91, 0.03, 0.03, 0.03,
+                      0.03, 0.91, 0.03, 0.03,
+                      0.03, 0.03, 0.91, 0.03,
+                      0.03, 0.03, 0.03, 0.91), byrow = TRUE, ncol = m, nrow = m)
 ```
 
 
+## Fitting a multilevel HMM -- starting values  
 
-## Model output -- summary()
-```{r, echo=TRUE}
-summary(out_3st)
+Starting values for the (Gaussian) emission distribution 
+
+- what are likely observations for each of the states (e.g., for a low and high crisis state)?
+- means and SDs need to be specified such that all observations within a variable receive reasonable support. 
+- take negative correlations between variables into account!  
+    - E.g., high self-control likely goes together with low suicidal ideation and vice versa. 
+- list with one matrix per dependent variable, with 2 columns -- mean and SD -- and `m` rows. 
+
+## Fitting a multilevel HMM -- starting values  
+
+Starting values for the (Gaussian) emission distribution 
+
+```{r, echo = TRUE, eval = FALSE}
+start_emission <- list(matrix(c(..., ..., 
+                                ..., ...,
+                                ..., ..., 
+                                ..., ...), byrow = TRUE, ncol = 2, nrow = m), # self-control
+                       matrix(c(..., ..., 
+                                ..., ...,
+                                ..., ..., 
+                                ..., ...), byrow = TRUE, ncol = 2, nrow = m), # negative-affect
+                       matrix(c(..., ..., 
+                                ..., ...,
+                                ..., ..., 
+                                ..., ...), byrow = TRUE, ncol = 2, nrow = m), # contact avoidance
+                       ...
 ```
 
-## Specifying (weakly) informative-priors -- gamma
+## Fitting a multilevel HMM -- starting values  
 
-Transition probability matrix Gamma (prior specification is optional):
-```{r, echo = TRUE, eval=FALSE}
-prior_gamma(
-  m,                  # number of states in the model
-  gamma_mu0,          # hyper-prior mean values on the Multinomial logit intercepts
-  gamma_K0 = NULL,    # number of hypothetical subjects gamma_mu0 is based on
-  gamma_nu = NULL,    # degrees of freedom inverse Wishart hyper-prior on covariance 
-  gamma_V = NULL,     # hyper-prior variance-covariance matrix of Inverse Wishart 
-  n_xx_gamma = NULL   # number of level 2 covariates predicting gamma 
-)
+Starting values for the (Gaussian) emission distribution 
+
+<div align="center">
+<br>
+<img src="./figures/quantiles CAB factors.png" width=950>
+</div>
+
+## Fitting a multilevel HMM -- starting values  
+
+Starting values for the (Gaussian) emission distribution 
 
 
-prob_to_int(
-  prob_matrix         # complete transition probability matrix gamma
-)
+```{r, echo = TRUE, eval = FALSE}
+start_emission <- list(matrix(c(60, 15, 
+                                40, 10,
+                                20, 10, 
+                                 3, 2), byrow = TRUE, ncol = 2, nrow = m), # self-control
+                       matrix(c(20, 10, 
+                                45, 10,
+                                65, 10, 
+                                82, 10), byrow = TRUE, ncol = 2, nrow = m), # negative-affect
+                       matrix(c( 3, 2, 
+                                15, 5,
+                                40, 10, 
+                                75, 10), byrow = TRUE, ncol = 2, nrow = m), # contact avoidance
+                       ...
 ```
 
-## Specifying (weakly) informative-priors -- emission
+## Fitting a multilevel HMM -- emission prior
 
-Categorical emission distribution (prior specification is optional): 
-```{r, echo = TRUE, eval=FALSE}
+Specifying parameter values for the prior on the emission distribution is mandatory, as it helps with the label switching problem. We want to convey: 
 
-prior_emiss_cat(
-  gen,               # general model properties m, n_dep, and q_emiss
-  emiss_mu0,         # hyper-prior mean values on the Multinomial logit intercepts
-  emiss_K0 = NULL,   # number of hypothetical subjects emiss_mu0 is based on
-  emiss_V = NULL,    # degrees of freedom inverse Wishart hyper-prior on covariance 
-  emiss_nu = NULL,   # hyper-prior variance-covariance matrix of Inverse Wishart 
-  n_xx_emiss = NULL  # number of level 2 covariates predicting emission distribution(s) 
-)
+- what are likely observations for each of the states (e.g., for a low and high crisis state)?
+- what is a likley amount of variation between individuals in the state means? 
+- means and variances need to be specified such that all observations within a variable receive reasonable support. 
+- take negative correlations between variables into account!  
+    - E.g., high self-control likely goes together with low suicidal ideation and vice versa.
+- can re-use some of the values specified in the starting values! 
 
+## Fitting a multilevel HMM -- emission prior
 
-prob_to_int(
-  prob_matrix         # complete categorical emission probability matrix 
-)
-```
-
-## Specifying (weakly) informative-priors -- emission
-
-Continuous emission distribution (prior specification is MANDATORY): 
+Specified using the function `prior_emiss_cont()`: 
 ```{r, echo = TRUE, eval=FALSE}
 
 prior_emiss_cont(
@@ -507,12 +520,12 @@ prior_emiss_cont(
   emiss_V,          # degrees of freedom inverse Gamma hyper-prior on BETWEEN subject variance 
   emiss_nu,         # hyper-prior variance of Inverse Gamma on BETWEEN subject variance 
   emiss_a0,         # shape values of IG hyper-prior on emission standard deviation^2 
-  emiss_b0,         # scale values of IG hyper-prior on emission standard deviation^2 
-  n_xx_emiss = NULL # number of level 2 covariates predicting emission distribution(s) 
+  emiss_b0,         # rate values of IG hyper-prior on emission standard deviation^2 
 )
 
 ```
 
+Most abstract is probably to specify emiss_a0 and emiss_b0 who determine the IG hyper-prior on the emission standard deviation$^2$
 
 ## More on IG hyper-prior on emission $\sigma^2$
 
@@ -552,6 +565,63 @@ cowplot::plot_grid(p.a1b1, p.a1b4, p.a1.5b20, p.a5b20)
 
 ```
 
+## Fitting a multilevel HMM -- emission prior
+
+Specified using the function `prior_emiss_cont()`: 
+```{r, echo = TRUE, eval=FALSE}
+
+emiss_prior <- prior_emiss_cont(
+  gen              = list(m = m, n_dep = n_dep),
+  emiss_mu0,       = list(matrix(c(60, 40, 20,  3), nrow = 1), # self-control
+                          matrix(c(20, 45, 65, 82), nrow = 1), # negative-affect
+                          matrix(c( 3, 15, 40, 75), nrow = 1), # contact avoidance)
+                          ... )
+  emiss_K0         = rep(list((1)),n_dep),
+  emiss_V,         = rep(list((1)),n_dep),
+  emiss_nu,        = rep(list(rep(10^2, m)), n_dep),
+  emiss_a0,        = rep(list(rep(1.5, m)), n_dep),
+  emiss_b0,        = rep(list(rep(20, m)), n_dep))
+)
+
+```
+
+## Fitting a multilevel HMM
+
+```{r show fitting 2 state model rep, eval = FALSE, echo=TRUE}
+library(mHMMbayes)
+
+# Run a model without covariate(s) and default prior for gamma:
+out_4st <- mHMM(s_data          = CAB_mHMM,
+                data_distr      = "continuous",,
+                gen             = list(m = m, n_dep = n_dep),
+                start_val       = c(list(start_tpm), start_emission),
+                emiss_hyp_prior = emiss_prior,
+                mcmc            = list(J = J, burn_in = burn_in))
+
+```
+
+## Model output -- print()
+```{r, echo=TRUE}
+out_4st
+```
+
+
+## Model output -- summary() {.smaller}
+```{r, echo=TRUE}
+summary(out_4st)
+```
+
+
+## Start practical 1
+
+<div>
+<br>
+<br>
+<br>
+</div>
+
+Let's try to run our own multilevel HMM in the lab! 
+
 
 ## References 
 
@@ -559,3 +629,33 @@ cowplot::plot_grid(p.a1b1, p.a1b4, p.a1.5b20, p.a5b20)
 - <font size="3">W. W. Hale III, & **E. Aarts** (2023). Hidden Markov model detection of interpersonal interaction dynamics in predicting patient depression improvement in psychotherapy: Proof-of-concept study. Journal of Affective Disorders Reports, 14, 100635. Doi: 10.1016/j.jadr.2023.100635 </font>
 - <font size="3">S. Mildiner Moraga, F.M. Bos, B. Doornbos, R. Bruggeman, L. van der Krieke, E. Snippe, **E. Aarts** (2022). Evidence for severe mood instability in patients with bipolar disorder: Applying multilevel hiden Markov modelling to intensive longitudinal ecological momentary assessment data. PsyArXiv preprint. Doi: 10.31234/osf.io/egp82 </font>
 - <font size="3">Mildiner Moraga, S., & **Aarts, E.** (2023). Go Multivariate: Recommendations on Bayesian Multilevel Hidden Markov Models with Categorical Data. Multivariate Behavioral Research, 1-29. Doi: 10.1080/00273171.2023.2205392 </font>
+
+## Note: specifying (weakly) informative-priors -- gamma
+
+Transition probability matrix Gamma (prior specification is optional):
+```{r, echo = TRUE, eval=FALSE}
+prior_gamma(
+  m,                  # number of states in the model
+  gamma_mu0,          # hyper-prior mean values on the Multinomial logit intercepts
+  gamma_K0 = NULL,    # number of hypothetical subjects gamma_mu0 is based on
+  gamma_nu = NULL,    # degrees of freedom inverse Wishart hyper-prior on covariance 
+  gamma_V = NULL,     # hyper-prior variance-covariance matrix of Inverse Wishart 
+)
+
+
+prob_to_int(
+  prob_matrix         # complete transition probability matrix gamma
+)
+```
+
+## mHMMbayes - Metropolis within Gibbs sampler
+
+1. Obtain forward probabilities $\alpha_{t(ni)} = Pr\big(O_1 = o_1, ..., O_t = o_t, S_t = i\big)$ for each subject using current values of subject specific model parameters.
+2. Sample hidden state sequences in backward manner using $\alpha_{t(ni)}$ and $\gamma_{nij}$.
+3. Given current subject-specific parameters, draw new group-level parameter estimates using Gibbs step
+4. Given 
+    - observed event sequence for each subject
+    - sampled hidden state sequence for each subject
+    - group-level parameter distributions
+    - draw new subject-specific parameters using RW Metropolis sampler
+5. Repeat step 1-4 a very large number of times
