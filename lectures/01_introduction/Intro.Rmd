@@ -350,7 +350,7 @@ start_TM <- diag(.9, m)
 start_TM[lower.tri(start_TM) | upper.tri(start_TM)] <- .05
 start_EM <- 1
 
-load("./data/CSP_DNA_mHMM_4stc_V5.Rda")
+load("./data1/CSP_DNA_mHMM_4stc_V5.Rda")
 out_4st <- CSP_DNA_mHMM_4stc
 out_4st 
 ```
