@@ -17,7 +17,8 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(mHMMbayes)
-devtools::load_all("~/Onderzoek/ggmHMM")
+devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
+library(ggmHMM)
 emotion_data <- readRDS("./data/data_Rowland2020.rds")
 emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')]
 ```
@@ -26,16 +27,16 @@ This is the first practical, where we introduce the dataset and we use it to fit
 
 You can use your preferred way of working in R to do the practicals. Our preferred way is this:
 
-- Create a new folder with a good name, e.g., `practicals_mHMM` 
-- Open RStudio
-- Create a new project from RStudio, which you associate with the folder
-- Create a `raw_data` subfolder
-- Create an R script for the current practical, e.g., `introduction.R`
-- Create your well-documented and [well-styled](https://style.tidyverse.org/) code in this R script
+* Create a new folder with a good name, e.g., `practicals_mHMM` 
+* Open RStudio
+* Create a new project from RStudio, which you associate with the folder
+* Create a `raw_data` subfolder
+* Create an R script for the current practical, e.g., `introduction.R`
+* Create your well-documented and [well-styled](https://style.tidyverse.org/) code in this R script
 
 The answers to the practicals are available in the `*_answers.html` files. Try to work out the answer yourself (e.g., inspecting help files and examples in them provided in the `mHMMbayes` package, looking at the tutorial vignette available online) before looking at this!
 
-In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.0.0. You can load the package like 
+In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.1.0. You can load the package like 
 
 ```{r, eval=FALSE}
 library(mHMMbayes)
@@ -48,20 +49,16 @@ We will use an open access dataset from Rowland and Wenzel (2020), available on 
 ---
 
 **Exercise 1**
-Download the dataset and save it in a nice location, e.g., a `raw_data` folder inside your R project. Also download the `Functions` folder and save it in the same folder that your Rmd file is located. This folder contains some nice helper functions that we will use to preprocess data and make plots. Load the helper functions.
+A. Download the dataset and save it in a nice location, e.g., a `raw_data` folder inside your R project.
+
+B. Download the `Functions` folder and save it in the same folder that your Rmd file is located. This folder contains some nice helper functions that we will use to preprocess data and make plots. Load the helper functions.
 
 ```{r, include = FALSE}
-source('../Functions/insert_nightgap.R')
-source('../Functions/PlotHeat.R')
-source('../Functions/PlotEmiss.R')
-source('../Functions/plot_dens.R')
+source('../helpers.R')
 ```
 
 ```{r, eval = FALSE}
-source('./Functions/insert_nightgap.R')
-source('./Functions/PlotHeat.R')
-source('./Functions/PlotEmiss.R')
-source('./Functions/plot_dens.R')
+source('./helpers.R')
 ```
 
 
@@ -70,13 +67,14 @@ source('./Functions/plot_dens.R')
 ---
 
 **Exercise 2**
-Load the dataset in R using the function `readRDS()`. Give the dataset the name `emotion_data`. Subset the dataset such that we only keep the columns indicating the subjects, the day and beep number, and the variables we are interested in. Then, inspect the first few rows of the data.
+A. Load the dataset in R using the function `readRDS()`. Give the dataset the name `emotion_data`. Subset the dataset such that we only keep the columns indicating the subjects, the day and beep number, and the variables we are interested in.
 
 ```{r, include = params$answers, eval=FALSE}
 emotion_data <- readRDS("../../data/data_Rowland2020.rds")
 emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')]
 ```
 
+B. Inspect the first few rows of the data.
 ```{r, include = params$answers}
 # inspect the first few rows
 head(emotion_data)
@@ -140,7 +138,8 @@ Use the `insert_nightgap` helper function to insert 8 rows of missing values for
 ```{r}
 emotion_nightgap <- insert_nightgap(data = emotion_data, # make sure the first column contains the subject IDs, and the second column contains the day numbers
                                     beeps_per_night = 8, # we want to insert 8 beeps for each night
-                                    ndays = 40 # number of days in the study (constant over subjects)
+                                    col_id = 1, # the first column contains the subject IDs
+                                    col_day = 2 # the second column contains the day numbers
                                     )
 ```
 
@@ -239,11 +238,11 @@ help(prior_emiss_cont)
 ```
 
 A few considerations should be made when setting up the priors.
-- emiss_mu0: the parameters specifying the means for the Normal emission distribution. The means should align with the hypothesized structure of a 'positive emotion' and a 'negative emotion' state. Do not use equivalent means over states within the same dependent variable. It should be a list of *n_dep* matrices (one for each observed variable), each with 1 row and *m* columns (one for each state). The first matrix for example, specifies the prior for the means of 'happy' in state 1 and state 2.
-- emiss_K0: the parameters specifying the degrees of freedom for the prior on the means. This can be interpreted as the number of hypothetical observations the prior for the mean (emiss_mu0) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
-- emiss_V: the parameters specifying the hypothesized between-person variance for their means on each state. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
-- emiss_nu: the parameters specifying the degrees of freedom for the prior on the standard deviations. This can be interpreted as the number of hypothetical observations the prior for the variance (emiss_V) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
-- emiss_a0 and emiss_b0: the parameters specifying respectively the shape and rate of the Inverse Gamma prior on the within-state variances. For an uninformative specification, this is generally set to a low number, such as 0.001 together with the emiss_b0 parameter. More sensible however, is to specify a weakly informative prior, determined by plotting combinations of values for 'emiss_a0' and 'emiss_b0. Both should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
+* emiss_mu0: the parameters specifying the means for the Normal emission distribution. The means should align with the hypothesized structure of a 'positive emotion' and a 'negative emotion' state. Do not use equivalent means over states within the same dependent variable. It should be a list of *n_dep* matrices (one for each observed variable), each with 1 row and *m* columns (one for each state). The first matrix for example, specifies the prior for the means of 'happy' in state 1 and state 2.
+* emiss_K0: the parameters specifying the degrees of freedom for the prior on the means. This can be interpreted as the number of hypothetical observations the prior for the mean (emiss_mu0) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
+* emiss_V: the parameters specifying the hypothesized between-person variance for their means on each state. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
+* emiss_nu: the parameters specifying the degrees of freedom for the prior on the standard deviations. This can be interpreted as the number of hypothetical observations the prior for the variance (emiss_V) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
+* emiss_a0 and emiss_b0: the parameters specifying respectively the shape and rate of the Inverse Gamma prior on the within-state variances. For an uninformative specification, this is generally set to a low number, such as 0.001 together with the emiss_b0 parameter. More sensible however, is to specify a weakly informative prior, determined by plotting combinations of values for 'emiss_a0' and 'emiss_b0. Both should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
 
 Below, we show an example of such a plot for a weakly informative inverse gamma prior, with a shape of 1.5 and a rate of 20.
 
@@ -413,7 +412,7 @@ PlotEmiss(model = out_2st_emotion, parameter = "SD") # standard deviations
 plot_dens(model = out_2st_emotion) # density plot
 
 # Use the ggmHMM package
-plot_emiss(model = out_2st_emotion, line = TRUE) # bar chart
+plot_emiss(model = out_2st_emotion, subject_effects = FALSE) # bar chart
 ```
 
 ---

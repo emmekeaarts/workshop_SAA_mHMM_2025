@@ -1509,29 +1509,25 @@ border-radius: 0px;
 <p>This is the second practical, we will dive into more advanced
 matters: model selection, subject specific parameters, covariates, and
 model fit. We continue with the same dataset: the open access dataset
-from Rowland and Wenzel (2020) containing the affective experiences
-<em>happy</em>, <em>excited</em>, <em>relaxed</em>, <em>satisfied</em>,
-<em>angry</em>, <em>anxious</em>, <em>depressed</em>, and <em>sad</em>,
-measured six times a day for 40 days in total. In contrary to the first
-practical, the different parts do not build upon one another, so you are
-free to choose any order you like, starting with the topic you find most
-interesting. There is quite some material and it is likely you will not
-be able to finish all of them (most likely around 2 topics), but the
-topics you have skipped can be completed at your own convenience at a
-later moment.</p>
+from Rowland and Wenzel (2020), using the subset of the affective
+experiences <em>happy</em>, <em>relaxed</em>, <em>anxious</em>, and
+<em>depressed</em>, measured six times a day for 40 days in total.</p>
 <p>The answers to the practicals are available in the
 <code>*_answers.html</code> files. Try to work out the answer yourself
 (e.g., inspecting help files and examples in them provided in the
 <code>mHMMbayes</code> package, looking at the tutorial vignette
 available online) before looking at this!</p>
 <p>In all practicals in this workshop, we make use of the
-<code>mHMMbayes</code> package, version 1.0.0. You can load the package
+<code>mHMMbayes</code> package, version 1.1.0. You can load the package
 like</p>
 <pre class="r"><code>library(mHMMbayes)</code></pre>
 <p>In this practical, we will also use the following packages:</p>
-<pre class="r"><code>library(ggplot2)
-library(reshape2)
-library(viridis)    # optional</code></pre>
+<pre class="r"><code># install.packages(&quot;coda&quot;)
+library(ggplot2) # for plotting
+library(ggmHMM) # plotting mHMM objects
+library(coda) # for assessing convergence</code></pre>
+<p>We will also, again, make use of our helper functions</p>
+<pre class="r"><code>source(&#39;./helpers.R&#39;)</code></pre>
 <div id="model-selection" class="section level2">
 <h2>Model selection</h2>
 <div id="fit-models-with-a-plausible-number-of-states" class="section level3">
@@ -1540,9 +1536,8 @@ library(viridis)    # optional</code></pre>
 of states to choose. Here, we will limit ourselves to models with 2, 3,
 and 4 states. As model checking is discussed at a later point in the
 practical, we will investigate the different models based on the state
-composition and the model fit criterion AIC. The 2-state model was
-fitted in the first practical, and saved in the object
-<code>out_2st_emotion</code>.</p>
+composition. The 2-state model was fitted in the first practical, and
+saved in the object <code>out_2st_emotion</code>.</p>
 <hr />
 <p><strong>Exercise 1</strong> Fit a 3- and 4- state multilevel HMM
 model, and save the fitted models in the objects
@@ -1559,7 +1554,7 @@ starter script.</p>
 
 ## general model properties
 m &lt;- 3
-n_dep &lt;- 8
+n_dep &lt;- 4
 
 ## starting values for gamma
 start_gamma_3st &lt;- matrix(c(0.8, 0.1, 0.1,
@@ -1569,26 +1564,14 @@ start_gamma_3st &lt;- matrix(c(0.8, 0.1, 0.1,
 ## starting values for the emission distribution 
 start_emiss_3st &lt;- list(matrix(c(80, 10,                                     # happy
                              50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # excited
-                             50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
+                             20, 10), byrow = TRUE, ncol = 2, nrow = m),
                     matrix(c(80, 10,                                     # relaxed
                              50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # satisfied
-                             50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # angry
-                             30, 10,
-                             50, 15), byrow = TRUE, ncol = 2, nrow = m), 
+                             20, 10), byrow = TRUE, ncol = 2, nrow = m),
                     matrix(c(10,  5,                                     # anxious
                              30, 10,
                              50, 15), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # depressed
-                             30, 10,
-                             50, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # sad
                              30, 10,
                              50, 15), byrow = TRUE, ncol = 2, nrow = m))
 
@@ -1596,13 +1579,9 @@ start_emiss_3st &lt;- list(matrix(c(80, 10,                                     
 emotion_prior_emiss_3st &lt;- prior_emiss_cont(
   gen = list(m = m, n_dep = n_dep),
   emiss_mu0 = list(matrix(c(80, 50, 20), nrow = 1),  # happy
-                   matrix(c(80, 50, 20), nrow = 1),  # excited
                    matrix(c(80, 50, 20), nrow = 1),  # relaxed
-                   matrix(c(80, 50, 20), nrow = 1),  # satisfied
-                   matrix(c(10, 30, 50), nrow = 1),  # angry
                    matrix(c(10, 30, 50), nrow = 1),  # anxious
-                   matrix(c(10, 30, 50), nrow = 1),  # depressed
-                   matrix(c(10, 30, 50), nrow = 1)), # sad 
+                   matrix(c(10, 30, 50), nrow = 1)),  # depressed
   emiss_K0 = rep(list(1), n_dep),
   emiss_V = rep(list(rep(5^2, m)), n_dep),
   emiss_nu = rep(list(1), n_dep),
@@ -1615,7 +1594,6 @@ emotion_prior_emiss_3st &lt;- prior_emiss_cont(
 
 ## general model properties
 m &lt;- 4
-n_dep &lt;- 8
 
 ## starting values for gamma
 start_gamma_4st &lt;- matrix(c(0.7, 0.1, 0.1, 0.1,
@@ -1628,31 +1606,15 @@ start_emiss_4st &lt;- list(matrix(c(80, 10,                                     
                              60, 10,
                              40, 10,
                              20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # excited
-                             60, 10,
-                             40, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(80, 10,                                     # relaxed
                              60, 10,
                              40, 10,
                              20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # satisfied
-                             60, 10,
-                             40, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # angry
-                             20, 10,
-                             40, 10,
-                             60, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # anxious
                              320, 10,
                              40, 10,
                              60, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # depressed
-                             20, 10,
-                             40, 10,
-                             60, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # sad
                              20, 10,
                              40, 10,
                              60, 10), byrow = TRUE, ncol = 2, nrow = m))
@@ -1661,13 +1623,9 @@ start_emiss_4st &lt;- list(matrix(c(80, 10,                                     
 emotion_prior_emiss_4st &lt;- prior_emiss_cont(
   gen = list(m = m, n_dep = n_dep),
   emiss_mu0 = list(matrix(c(80, 60, 40, 20), nrow = 1),  # happy
-                   matrix(c(80, 60, 40, 20), nrow = 1),  # excited
                    matrix(c(80, 60, 40, 20), nrow = 1),  # relaxed
-                   matrix(c(80, 60, 40, 20), nrow = 1),  # satisfied
-                   matrix(c(10, 20, 40, 60), nrow = 1),  # angry
                    matrix(c(10, 20, 40, 60), nrow = 1),  # anxious
-                   matrix(c(10, 20, 40, 60), nrow = 1),  # depressed
-                   matrix(c(10, 20, 40, 60), nrow = 1)), # sad 
+                   matrix(c(10, 20, 40, 60), nrow = 1)),  # depressed
   emiss_K0 = rep(list(1), n_dep),
   emiss_V = rep(list(rep(5^2, m)), n_dep),
   emiss_nu = rep(list(1), n_dep),
@@ -1689,29 +1647,12 @@ this to evaluate whether it seems sensible to add extra states.
 Especially with multivariate data, inspecting the composition of the
 states is done most easily visually.</p>
 <hr />
-<p><strong>Exercise 3</strong> Use your code from practical 1 to
-visualize the group level emission distributions of the 3- and 4-state
-model and compare to the 2-state model. Note: remember to first save the
-emission distribution parameters in an object using the function
-<code>obtain_emiss()</code>. Does it seem to make sense to add extra
-state(s)?</p>
+<p><strong>Exercise 3</strong> Use the helper function
+<code>PlotEmiss()</code> or the function <code>plot_emiss()</code> from
+the <em>ggmHMM</em> package to visualize the emission distributions of
+the three-state and four-state model. Does it seem to make sense to add
+extra state(s)?</p>
 <hr />
-</div>
-<div id="consider-model-selection-criteria-for-guidance" class="section level3">
-<h3>Consider model selection criteria for guidance</h3>
-<p>Next, let’s compare the 2-, 3-, and 4-state model on the model
-selection criteria AIC.</p>
-<hr />
-<p><strong>Exercise 4</strong> Obtain the AIC values of the 2-, 3-, and
-4-state model using the <code>print()</code> function on the mHMM
-objects <code>out_2st_emotion</code>, <code>out_3st_emotion</code>,
-<code>out_4st_emotion</code>, and compare. Note: it can be helpful to
-visualize the AIC values over the states to get a feeling for how much
-the AIC decreases over the models.</p>
-<hr />
-<p>As you can see, determining the number of states can be a subjective
-and tricky endeavor, and depends very much on the data and research
-question at hand.</p>
 </div>
 </div>
 <div id="subject-specific-parameters" class="section level2">
@@ -1723,16 +1664,17 @@ but feel free to try this with any of the other number of states
 models.</p>
 <div id="transition-probabilities-gamma" class="section level3">
 <h3>Transition probabilities gamma</h3>
-<p>First, we need to obtain the subject specific paramters, and save the
-subject specific paramters in an object. When focusing on the transition
-probabilities gamma, the function <code>obtain_gamma()</code> can also
-be used to obtain the subject specific transition probabilites, by
-setting the input argument <code>level</code> to <code>&quot;subject&quot;</code>.
-Note that the default of <code>level</code> is <code>&quot;group&quot;</code>, so
-when left unspecified, the function <code>obtain_gamma()</code> will
-return the group level transition probabilities.</p>
+<p>First, we need to obtain the subject specific parameters for the
+emissions and the transition probabilities. When focusing on the
+transition probabilities gamma, the function <code>obtain_gamma()</code>
+can also be used to obtain the subject specific transition
+probabilities, by setting the input argument <code>level</code> to
+<code>&quot;subject&quot;</code>. Note that the default of <code>level</code> is
+<code>&quot;group&quot;</code>, so when left unspecified, the function
+<code>obtain_gamma()</code> will return the group level transition
+probabilities.</p>
 <hr />
-<p><strong>Exercise 5</strong> Obtain the subject specific transition
+<p><strong>Exercise 4</strong> Obtain the subject specific transition
 probabilities using the function <code>obtain_gamma()</code> and set the
 input argument <code>level</code> to <code>&quot;subject&quot;</code>. Save the
 output in the object <code>gamma_subject</code>. Inspect the output.</p>
@@ -1743,7 +1685,7 @@ the same state as the current state, provided on the diagonal of the
 transition probability matrix) will probably remain for a long time
 within a state, while low self-transition probabilities most likely will
 translate to state sequences where a state is only visited for a short
-consequitive sequence.</p>
+consecutive sequence.</p>
 <hr />
 <p>To develop an intuition on how much the transition probabilities vary
 over subjects, it can be helpful to plot the subject specific state
@@ -1752,9 +1694,25 @@ subject, or in stacked dots with a dot for each subject specific
 transition probability, and columns for each of the possible state
 transitions.</p>
 <hr />
-<p><strong>Exercise 6</strong> Plot (a subset of) the subject specific
+<p><strong>Exercise 5</strong> Plot (a subset of) the subject specific
 transition probabilities, and investigate how much the transition
-probabilities differ over subjects.</p>
+probabilities differ over subjects. This can be done in 2 ways:</p>
+<ul>
+<li>With the helper function <code>PlotHeat()</code>, a single heatmap
+may be plotted, by subsetting the list <code>gamma_subject</code>.</li>
+<li>With the function <code>plot_gamma()</code> from the <em>ggmHMM</em>
+package, a heatmap may be plotted for each subject (or a subset)
+separately. This can be done by
+<ul>
+<li>setting the input argument <code>subject_effects</code> to
+<code>TRUE</code>, and</li>
+<li>setting the input argument <code>subject</code> to a vector of
+subject IDs (e.g., <code>1:10</code>), or a single number do specify the
+subject.</li>
+<li>Specify <code>ncol_facet</code> to setup the layout, or
+<code>facet = FALSE</code> to plot a single row per subject.</li>
+</ul></li>
+</ul>
 <hr />
 </div>
 <div id="emission-distribution" class="section level3">
@@ -1769,7 +1727,7 @@ specific emission distribution parameters, by setting the input argument
 the function <code>obtain_emiss()</code> will return the group level
 emission distribution parameters.</p>
 <hr />
-<p><strong>Exercise 7</strong> Obtain the subject specific emission
+<p><strong>Exercise 6</strong> Obtain the subject specific emission
 distribution parameters using the function <code>obtain_emiss()</code>
 and set the input argument <code>level</code> to <code>&quot;subject&quot;</code>.
 Save the output in the object <code>emiss_subject</code>. Inspect the
@@ -1779,141 +1737,35 @@ output.</p>
 parameters (e.g., the variable and state specific means) vary over
 subjects, it can be helpful to plot the subject specific emission
 distribution parameters, for example by adding the subject specific
-parameters as dots to a group level barplot of the emission means.</p>
+parameters as dots to a group level barplot of the emission means. This
+can be done using the helper function <code>PlotEmiss()</code> or the
+<em>ggmHMM</em> function <code>plot_emiss()</code>.</p>
 <hr />
-<p><strong>Exercise 8</strong> Plot (a subset of) the subject specific
-emission distribution means, and investigate how much the means differ
-over subjects.</p>
+<p><strong>Exercise 7</strong> Plot (a subset of) the subject specific
+emission distribution means, using the helper function
+<code>PlotEmiss()</code> or the function <code>plot_emiss()</code> from
+the <em>ggmHMM</em> package and investigate how much the means differ
+over subjects. Hint: both functions have the argument
+<code>subject</code>, which can be used to specify a vector of subjects
+to plot random effects for.</p>
 <hr />
 <p>In addition, it is important to check that the states represent the
 same construct over subjects. Working with our current dataset, that
 would mean that for each subject, state 1 represents a ‘good mood’
-state, and state 2 represents a ‘bad mood’ state. Fore example, for the
+state, and state 2 represents a ‘bad mood’ state. For example, for the
 indicator <em>happy</em>, that would translate to the mean of state 1
 being higher compared to state 2. Visually, this can be checked by
 connecting the subject specific means over the states within one
 indicator by lines.</p>
 <hr />
-<p><strong>Exercise 9</strong> Plot (a subset of) the subject specific
+<p><strong>Exercise 8</strong> Plot (a subset of) the subject specific
 emission distribution means connecting the subject specific means, and
 visually investigate whether the state 1 is a relatively good state and
-state 2 a relatively bad state over subjects.</p>
+state 2 a relatively bad state over subjects. Hint: this can be done by
+specifying <code>line = TRUE</code> in <code>PlotEmiss()</code> or
+<code>plot_emiss()</code>.</p>
 <hr />
 </div>
-</div>
-<div id="covariates" class="section level2">
-<h2>Covariates</h2>
-<p>In this section we will see if we can explain the differences
-observed in the subject specific state transition probabilities by the
-covariate <code>group</code>. Group = 1 denotes the subjects that
-received mindfulness training, while group = 2 represents the subjects
-that were in a waiting list control group.</p>
-<p>Covariates are specified to the model as a list, where the first
-element in the list is used to predict the transition matrix. Subsequent
-elements in the list are used to predict the emission distribution of
-(each of) the dependent variable(s). As we only want to predict the
-transition matrix, the subsequent lists will be set to
-<code>NULL</code>. Each (non-null) element in the list is a matrix, with
-only one row per subject. The first column consists of only ones
-(representing the intercept), and the subsequent columns contain the
-covariate(s).</p>
-<hr />
-<p><strong>Exercise 10</strong> Compose the list containing the
-covariate in the correct format. To speed up the process, a starter
-script is given below. Note that the covariate <code>group</code> is
-contained in the dataset <code>emotion_data</code>, and still needs to
-be condensed to only one input per subject. In addition, note that a
-dichotomous covariate needs to be codes as 0 / 1, so the group variable
-containing the values 1 and 2 still need to be transformed to only
-contain the values 0 and 1.</p>
-<pre class="r"><code># specify a list with the correct number of elements, where all elements are set to NULL
-covariate &lt;- vector(&quot;list&quot;, length = 1 + n_dep)
-
-# specify the first element of the list, where the first column consists of ones only,  
-# the second column contains the covariate group, with only one entry per subject
-n_subj &lt;- out_2st_emotion$input$n_subj
-covariate[[1]] &lt;- matrix(c(rep(1,n_subj), 
-                           [INPUT THE COVARIATE HERE]), byrow = FALSE, ncol = 2)</code></pre>
-<hr />
-<p>Now, let’s fit a 2-state multilevel HMM including the covariate
-<code>group</code> to predict the subject specific state transition
-probabilities. Note that we can re-use the specified starting values and
-hyper-prior value specification for the emission distribution from
-practical 1.</p>
-<hr />
-<p><strong>Exercise 11</strong> fit a 2-state multilevel HMM including
-the covariate <code>group</code>, and save the fitted model in the
-object <code>out_2st_emotion_cov</code>. The input argument for
-specifying a covariate within the function <code>mHMM()</code> is
-<code>xx</code>.</p>
-<hr />
-<p>Note: when using covariates, the specification of the hyper-prior
-values changes for that component of the model. In this example, we only
-specified a covariate predicting the transition probabilities, and as we
-did not specify specif hyper-prior values for the transition
-probabilities (i.e., we used the default prior specifications inbuilt
-within the <code>mHMMbayes</code> package for the transition
-probabilities gamma), nothing changed for the prior specification of the
-emission distribution. However, please note that if we were to use the
-covariate to explain differences in the subject specific emission
-distribution, the hyper prior value specification using
-<code>prior_emiss_cont()</code> function would change. See the help file
-of this function for more information.</p>
-<hr />
-<p><strong>Exercise 12</strong> Inspect the general output of the
-2-state model including the covariate by using the inbuilt
-<code>print()</code> and <code>summary()</code> for objects of class
-<code>mHMM</code> returned by the <code>mHMM()</code> function.</p>
-<hr />
-<p>As you can see, the package currently does not yet include
-information on the output of the covariate in the <code>print()</code>
-and <code>summary()</code> functions. For covariates on the transition
-probabilities, parameter estimates related to the covariate(s) are
-contained in the list named <code>gamma_cov_bar</code> included in the
-output object. For covariates on the emission distribution, parameter
-estimates related to the covariate(s) are contained in the list named
-<code>emiss_cov_bar</code> (when modelling continuous output, see the
-function <code>mHMM()</code> help file for more information). To be
-specific, <code>gamma_cov_bar</code> is a matrix containing the group
-level regression coefficients of the Multinomial logistic regression
-predicting the transition probabilities over the iterations of the
-hybrid Metropolis within Gibbs sampler. The iterations of the sampler
-are contained in the rows, and the columns contain the group level
-regression coefficients. Note that as we are using the multinomial logit
-transformation of the probabilities, the first state in each row of the
-transition probability matrix serves as a reference category, and does
-not have a regression coefficient.</p>
-<hr />
-<p><strong>Exercise 13</strong> Inspect the regression coefficients
-related to the covariate <code>group</code> using the starter script
-below. Using the script, you will obtain a summary of the posterior
-distribution over the MCMC iterations: the mode and the lower and upper
-limit of the 95% credibility interval. In case that the credibility
-interval does not contain zero, it can be seen as a strong indicator
-that the covariate <code>group</code> is indeed related to the subject
-specific transition probabilities. In addition, a positive regression
-coefficient signals that for the group coded as 1, the transition
-probability from state 1 to state 2, and from state 2 to state 2 are
-increased. A negative regression coefficient ignals that for the group
-coded as 1, the transition probability from state 1 to state 2, and from
-state 2 to state 2 are decreased.</p>
-<pre class="r"><code>burn_in &lt;- ... # fill in the burn-in period you specified in mHMM()
-J &lt;- ...       # fill in the number of MCMC iterations you specified in mHMM()
-
-summary_covariate &lt;- data.frame(median =                                    
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, median),
-                                lower_CrI = 
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.025),
-                                upper_CrI =
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.975))
-
-summary_covariate</code></pre>
-<hr />
-<p>As you can see, the covariate <code>group</code> is does not explain
-the heterogeneity we observe in the subject specific transition
-probability parameters. This is in line with the original paper, where
-they also did not find an effect of mindfulness training on the mood
-factors, albeit tested in a different manner.</p>
 </div>
 <div id="model-fit" class="section level2">
 <h2>Model fit</h2>
@@ -1923,124 +1775,101 @@ using posterior predictive checks (PPCs).</p>
 <h3>Convergence</h3>
 <p>Within any Bayesian analysis, convergence needs to be assessed in
 order to rule out output resulting from a local (instead of global)
-maximum. To check this, multiple chains (at least 2) need to be run,
-performing the same analysis but using (slightly) different starting
-values in each chain. Note that in multilevel hidden Markov models, it
-is important to still keep sensible starting values when varying these.
-For example, when modelling continuous or count data, we need to keep
-the same sensible ordering of <span class="math inline">\(\bar{\mu}_i\)</span> or <span class="math inline">\(\bar{\lambda}_i\)</span> given data and process.
-Values of the weakly informative prior distributions should be fixed
+maximum. To check this, multiple chains (at least 2, but we recommend
+using at least 4) need to be run, performing the same analysis but using
+(slightly) different starting values in each chain. Note that in
+multilevel hidden Markov models, it is important to still keep sensible
+starting values when varying these. For example, when modelling
+continuous or count data, we need to keep the same sensible ordering of
+<span class="math inline">\(\bar{\mu}_i\)</span> or <span class="math inline">\(\bar{\lambda}_i\)</span> given data and process.
+Values of the (weakly informative) prior distributions should be fixed
 over the chains.</p>
 <hr />
-<p><strong>Exercise 14</strong> Fit at least one additional chain for
-the 2 state multilevel HMM model specifying new starting values, and
-save each new fitted model in a new object, e.g.,
+<p><strong>Exercise 9</strong> Fit at least one additional chain for the
+2 state multilevel HMM model specifying new starting values, and save
+each new fitted model in a new object, e.g.,
 <code>out_2st_emotion_b</code>.</p>
 <hr />
-<p>Evidence for non convergence can be checked in multiple ways.
-Visually, using trace plots which visualize the parameter estimates over
+<p>Evidence for non convergence can be checked in multiple ways. A first
+way is, using trace plots which visualize the parameter estimates over
 the iterations of the MCMC sampler. The chains should not show any trend
-and good mixing. Or numerically, with the potential scale reduction
-factor <span class="math inline">\(\hat{R}\)</span>. <span class="math inline">\(\hat{R}\)</span> tests for equality of means of
+and good mixing. Furthermore, we should have no label switching (or at
+least very little) in the subject-specific parameters.</p>
+<p>Or numerically, with the potential scale reduction factor <span class="math inline">\(\hat{R}\)</span>. <span class="math inline">\(\hat{R}\)</span> tests for equality of means of
 the different chains - the degree to which variance (of the means)
 between chains exceeds what one would expect if the chains were
 identically distributed. A value of R-hat below 1.2 is used to indicate
 convergence.</p>
-<p>For the group level transition probabilities gamma, we will show how
-to obtain the traceplots. The information on the parameter estimates on
-the group level transition probabilities over the MCMC iterations are
-contained in the list <code>gamma_prob_bar</code> included in the
-returned output object when using the function <code>mHMM()</code>.</p>
+<p>The trace plots can be obtained using the <em>ggmHMM</em> function
+<code>plot_trace()</code>. For now, the following arguments are
+relevant:</p>
+<ul>
+<li>model: a model or list of models of class <code>mHMM</code></li>
+<li>component: “gamma” for transition probabilities, or “emiss” for
+emission distributions</li>
+<li>level: “group” for group-level parameters. “subject” for
+subject-specific parameters.</li>
+<li>vrb: the variable to plot the trace for. For example, “happy” for
+the happy variable.</li>
+<li>subject: Integer specifying the subject to create trace plots
+for.</li>
+</ul>
 <hr />
-<p><strong>Exercise 14</strong> Using the starter script below, inspect
-the traceplots of the group level transition probabilities.</p>
-<pre class="r"><code>burn_in &lt;- ... # fill in the burn-in period you specified in mHMM()
-J &lt;- ...       # fill in the number of MCMC iterations you specified in mHMM()
-
-data1 &lt;- out_2st_emotion
-data2 &lt;- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 &lt;- out_2st_emotion_c
-
-par(mfrow = c(m,m))
-for(i in 1:m){
-  for(j in 1:m){
-    plot(data1$gamma_prob_bar[,(j + ((i-1) * m))], type = &quot;l&quot;, 
-         main = paste(&quot;From&quot;, i, &quot;to&quot;, j), 
-         ylim = c(0,1), col = &quot;coral&quot;, ylab = &quot;transition probability&quot;, xlab = &quot;iteration&quot;)
-    lines(data2$gamma_prob_bar[,(j + ((i-1) * m))], col = &quot;cornflowerblue&quot;)
-    # lines(data3$gamma_prob_bar[,(j + ((i-1) * m))], col = &quot;green&quot;)
-    abline(h = mean(data1$gamma_prob_bar[((burn_in + 1): J),(j + ((i-1) * m))]), col = &quot;coral&quot;)
-    abline(h = mean(data2$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = &quot;cornflowerblue&quot;)
-    # abline(h = mean(data3$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = &quot;green&quot;)
-  }
-}</code></pre>
-<p>Note that in addition to the group level parameters, it is also
-important to check convergence at the subject level. However, this is
-beyond the current practical.</p>
+<p><strong>Exercise 10</strong> A. Use <code>plot_trace()</code> to
+create a trace plot for the group-level transition probabilities of the
+2-state model. Use both <code>out_2st_emotion</code> and
+<code>out_2st_emotion_b</code>.</p>
+<p>B. In addition to the group level parameters, it is also important to
+check convergence at the subject level. Use the function
+<code>plot_trace()</code> to create a trace plot for the subject
+specific emission means of the first subject, for the variable “happy”.
+Use both <code>out_2st_emotion</code> and
+<code>out_2st_emotion_b</code>.</p>
 <hr />
-<p>For the means of the emission distributions, we will show how to
-calculate <span class="math inline">\(\hat{R}\)</span>. The information
-on the group level emission distribution means over the MCMC iterations
-are contained in the list <code>emiss_mu_bar</code> included in the
-returned output object when using the function <code>mHMM()</code>.</p>
+<p>We have provided you with a helper function, <code>f_GR()</code>, to
+calculate the group level <span class="math inline">\(\hat{R}\)</span>
+values. The function takes the following arguments:</p>
+<ul>
+<li>model_list: a list of models (i.e. multiple chains)</li>
+<li>digits: number of digits to round to. Default is 2.</li>
+<li>burnin: number of burnin iterations to use. Defaults to the number
+specified when building the first model.</li>
+</ul>
 <hr />
-<p><strong>Exercise 15</strong> Using the starter script below, inspect
-the <span class="math inline">\(\hat{R}\)</span> values of the group
-level emission distribution means.</p>
-<pre class="r"><code>burn_in &lt;- ... # fill in the burn-in period you specified in mHMM()
-J &lt;- ...       # fill in the number of MCMC iterations you specified in mHMM()
-n_dep &lt;-  ...  # fill in the number of dependent variables used in mHMM()
-n_chain &lt;- ... # fill in the number of chains used (in the example, 2)
-  
-data1 &lt;- out_2st_emotion
-data2 &lt;- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 &lt;- out_2st_emotion_c
-
-L &lt;- J - burn_in
-
-emiss_mean_data1 &lt;- emiss_mean_data2 &lt;- emiss_grand_mean &lt;- #  &lt;- emiss_mean_data3
-  emiss_between_chain_var &lt;- emiss_within_chain_var_d1 &lt;- emiss_within_chain_var_d2 &lt;- #emiss_within_chain_var_d3 &lt;-
-  emiss_W &lt;- emiss_GelRub &lt;- vector(mode = &quot;list&quot;, n_dep)
-for(j in 1:n_dep){
-    emiss_mean_data1[[j]] &lt;- apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_mean_data2[[j]] &lt;- apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    # emiss_mean_data3[[j]] &lt;- apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_grand_mean[[j]] &lt;- (emiss_mean_data1[[j]] + emiss_mean_data2[[j]]) # + emiss_mean_data3[[j]]) 
-    / n_chain
-    emiss_between_chain_var[[j]] &lt;- L / (n_chain-1) * ((emiss_mean_data1[[j]] - emiss_grand_mean[[j]])^2 + 
-                                                         (emiss_mean_data2[[j]] - emiss_grand_mean[[j]])^2 +
-                                                      # (emiss_mean_data3[[j]] - emiss_grand_mean[[j]])^2
-                                                        )
-    emiss_within_chain_var_d1[[j]] &lt;- (1 / (n_chain-1)) * apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_within_chain_var_d2[[j]] &lt;- (1 / (n_chain-1)) * apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-   # emiss_within_chain_var_d3[[j]] &lt;- (1 / (n_chain-1)) * apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_W[[j]] &lt;- (1/n_chain) * (emiss_within_chain_var_d1[[j]] + emiss_within_chain_var_d2[[j]] # + emiss_within_chain_var_d3[[j]]
-                                   )
-    
-    emiss_GelRub[[j]] &lt;- sqrt(((L - 1)/ L * emiss_W[[j]] + 1/L *  emiss_between_chain_var[[j]] ) / emiss_W[[j]])
-}
-
-# Inspect the Gelman Rubin statistic Rhat over all dependent variables and states 
-emiss_GelRub
-
-# inspect the mean Gelman Rubin statistic Rhat 
-mean(unlist(emiss_GelRub))
-
-# inspect the percentage of Gelman Rubin statistic Rhat above 1.2 
-sum(unlist(emiss_GelRub) &gt; 1.2) / length(unlist(emiss_GelRub))</code></pre>
+<p><strong>Exercise 11</strong> Use the function <code>f_GR()</code> to
+calculate the <span class="math inline">\(\hat{R}\)</span> values for
+the group level transition probabilities and emission distribution
+means. Did the models reach convergence?</p>
 </div>
 <div id="ppcs" class="section level3">
 <h3>PPCs</h3>
 <p>Finally, we will assess whether the model recovers the data correctly
 with respect to the mean and standard deviation, to reveal potential
-model missspecification. First, we need to generate simulated data sets
-based on obtained parameter estimates. The function
-<code>sim_mHMM()</code> can be used to simulate data using a multilevel
-hidden Markov model.</p>
+model misspecification. It is particularly helpful for group-level model
+evaluation. First, we need to generate simulated data sets based on
+obtained parameter estimates. The function <code>sim_mHMM()</code> can
+be used to simulate data using a multilevel hidden Markov model. Note
+that for each simulated dataset, new subject-specific parameters are
+simulated, but the group-level parameters remain fixed.</p>
+<p>The function takes the following arguments (for more detailed
+information, use <code>help(sim_mHMM()</code>):</p>
+<ul>
+<li>n_t: length of observed sequence for each subject</li>
+<li>n: sumber of subjects</li>
+<li>data_distr: string indicating the type of data to simulate.
+“continuous” in our case.</li>
+<li>gen: list containing the elemens: m (number of hidden states) and
+n_dep (number of dependent variables)</li>
+<li>gamma: group-level transition probability matrix. It should be an
+unnamed matrix with m rows and m columns.</li>
+<li>emiss_distr: group-level emission distributions. Specified as a list
+of matrices, one for each dependent variable. Each matrix should have 2
+columns (mean and sd) and m rows (number of states).</li>
+<li>var_gamma: variance of transition probabilities.</li>
+<li>var_emiss: variance of emission probabilities.</li>
+</ul>
 <hr />
-<p><strong>Exercise 16</strong> Use the starter script below to simulate
+<p><strong>Exercise 12</strong> Use the starter script below to simulate
 100 datasets based on the model parameters of the 2-state multilevel
 HMM.</p>
 <pre class="r"><code>n_sim &lt;- 100 # for now, we will use 100 simulated datasets, but feel free to change. 
@@ -2060,24 +1889,74 @@ for(i in 1:n_sim){
                                 gamma = ... ,   # specify the obtained transition prob matrix 
                                 emiss_distr = ... , # specify the emission distribution, see help file
                                 var_gamma = 0.01,
-                                var_emiss = c(300, 300, 300, 300, 100, 200, 200, 200)
+                                var_emiss = c(300, 300, 200, 200)
   )
 }</code></pre>
 <hr />
 <hr />
-<p><strong>Exercise 17</strong> For each simulated data set, calculate
-the summary statistics of interest (i.e., mean and standard
-deviation).</p>
+<p><strong>Exercise 13</strong> For each simulated data set, calculate
+the summary statistics of interest for all four variables (i.e., mean
+and standard deviation).</p>
 <hr />
 <p>Now we have simulated datasets and obtained the summary
 characteristics, we will visually compare the characteristics of the
 simulated data to that of the observed data.</p>
 <hr />
-<p><strong>Exercise 18</strong> Plot the summary characteristics (mean
+<p><strong>Exercise 14</strong> Plot the summary characteristics (mean
 and sd) of the simulated datasets in histograms, and add a vertical line
 for the mean and sd in the observed data to aid the comparison.</p>
 <hr />
 </div>
+</div>
+<div id="pseudoresiduals" class="section level2">
+<h2>Pseudoresiduals</h2>
+<p>Where PPCs are most useful for group-level model evaluation,
+pseudoresiduals are most useful for model evaluation at the subject
+level. These are residuals that are obtained based on the most likely
+state sequence for each person (hence the suffix <code>pseudo</code>),
+using the Viterbi algorithm (see previous practical).</p>
+<p>We can compute the Root-Mean-Squared-Error (RMSE) of the
+pseudoresiduals, which is a measure of how well the model fits the data,
+where a lower RMSE indicates a better fit. This is especially useful to
+compare models.</p>
+<p>We have provided you with two helper functions for this.
+<code>GetResid()</code> can be used to obtain residuals for a specific
+person for a specific variable. The function takes the following
+arguments:</p>
+<ul>
+<li>data: the dataset used to build the model</li>
+<li>model: the fitted model</li>
+<li>j: integer specifying the variable to obtain residuals for</li>
+<li>i: the desired subject</li>
+</ul>
+<p>It outputs a list with 4 elements:</p>
+<ul>
+<li>emp: the data of subject i for variable j</li>
+<li>model: the predicted values for subject i for variable j</li>
+<li>resid: the pseudoresiduals for subject i for variable j</li>
+<li>RMSE: the RMSE for subject i for variable j</li>
+</ul>
+<p><strong>Exercise 15</strong> A. Use <code>GetResid()</code> to obtain
+pseudoresiduals for subject 1 for all variables. Do this for both the
+2-state and 3-state model. Hint: use the function <code>lapply()</code>
+to loop over the variables.</p>
+<p>B. Obtain the RMSE for the pseudoresiduals of subject 1 for all
+variables, and compare the RMSE of the 2-state and 3-state model. Which
+model fits better for this person?</p>
+<p>After obtaining the pseudoresiduals, we can also plot them separately
+for each person and each variable to assess: 1. Whether the
+pseudoresiduals are (roughly) normally. 2. Whether there is a trend over
+time. 2. Whether there is any remaining dependency between residuals
+over time (can also be assessed using the autocorrelation). 3. Whether
+there are any outliers. 4. Whether variance is (roughly) stable over
+time.</p>
+<p>We have provided you with a helper function,
+<code>PlotResid()</code>, to plot the pseudoresiduals. It takes an
+object returned by <code>GetResid()</code> as input.</p>
+<p><strong>Exercise 16</strong> Use <code>PlotRes()</code> to plot the
+pseudoresiduals for subject 1 for the variable <code>happy</code>
+(i.e. the first variable), for the 3-state model. How do you evaluate
+the model fit for this person?</p>
 </div>
 
 
