@@ -187,7 +187,8 @@ PlotEmiss <- function(model,
 # ---------- Heatplot [for Transition Matrices] ----------
 # --------------------------------------------------------
 
-PlotHeat <- function(gamma,
+PlotHeat <- function(phi,
+                     k,
                      main="",
                      labels=NULL,
                      las.x=1,
@@ -201,7 +202,7 @@ PlotHeat <- function(gamma,
   old_par <- par(no.readonly = TRUE)
   
   # -- Aux Variables --
-  p <- ncol(gamma)
+  p <- ncol(phi)
   
   # -- Make color gradient --
   color.gradient <- function(x, colors=c("#E41A1C", "white", "#377EB8"), colsteps=201) {
@@ -234,21 +235,21 @@ PlotHeat <- function(gamma,
   title(ylab="From", cex.lab=cex.from, line=2)
   mtext("To", side=3, cex=cex.to, line=2)
   
-  gamma_col <- matrix(NA, p, p)
+  phi_col <- matrix(NA, p, p)
   
   # Plot Data
   for(i in 1:p) {
     for(j in 1:p) {
       
       # Get color
-      gamma_ij <- gamma[p:1, ][j, i]
-      if(gamma_ij < -1) {
+      phi_ij <- phi[p:1, ][j, i]
+      if(phi_ij < -1) {
         col_ij <- grad[1]
-      } else if(gamma_ij > 1 ) {
+      } else if(phi_ij > 1 ) {
         col_ij <- grad[201]
       } else {
-        col_ij <- grad[gamma[p:1, ][j, i] * 100 + 101]
-        gamma_col[j,i] <- col_ij
+        col_ij <- grad[phi[p:1, ][j, i] * 100 + 101]
+        phi_col[j,i] <- col_ij
       }
       
       # Plot box
@@ -258,7 +259,7 @@ PlotHeat <- function(gamma,
            ytop = seq_mp_x[j]+sfm,
            col = col_ij)
       # Plot text
-      text(seq_mp_x[i], seq_mp_x[j], round(gamma_ij , 2), cex=cex.val, col="black")
+      text(seq_mp_x[i], seq_mp_x[j], round(phi_ij , 2), cex=cex.val, col="black")
     }
   }
   
@@ -267,7 +268,7 @@ PlotHeat <- function(gamma,
   
   
   # Return colors
-  return(gamma_col)
+  return(phi_col)
   
 } # eoF
 

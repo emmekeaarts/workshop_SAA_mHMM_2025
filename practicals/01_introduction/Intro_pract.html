@@ -1529,7 +1529,7 @@ script</li>
 <code>mHMMbayes</code> package, looking at the tutorial vignette
 available online) before looking at this!</p>
 <p>In all practicals in this workshop, we make use of the
-<code>mHMMbayes</code> package, version 1.0.0. You can load the package
+<code>mHMMbayes</code> package, version 1.1.0. You can load the package
 like</p>
 <pre class="r"><code>library(mHMMbayes)</code></pre>
 <div id="the-data" class="section level2">
@@ -1554,24 +1554,25 @@ and the specific dataset we will be working with <a href="https://github.com/jmb
 It is an <code>rds</code> file, which is a convenient, portable, and
 fast binary file format for R.</p>
 <hr />
-<p><strong>Exercise 1</strong> Download the dataset and save it in a
-nice location, e.g., a <code>raw_data</code> folder inside your R
-project. Also download the <code>Functions</code> folder and save it in
-the same folder that your Rmd file is located. This folder contains some
-nice helper functions that we will use to preprocess data and make
-plots. Load the helper functions.</p>
-<pre class="r"><code>source(&#39;./Functions/insert_nightgap.R&#39;)
-source(&#39;./Functions/PlotHeat.R&#39;)
-source(&#39;./Functions/PlotEmiss.R&#39;)
-source(&#39;./Functions/plot_dens.R&#39;)</code></pre>
+<p><strong>Exercise 1</strong></p>
+<p><strong>A.</strong> Download the dataset and save it in a nice
+location, e.g., a <code>raw_data</code> folder inside your R
+project.</p>
+<p><strong>B.</strong> Download the file <code>helpers.R</code> and save
+it in the same folder that your Rmd file is located. This R file
+contains some nice helper functions that we will use to preprocess data
+and make plots. Load the helper functions.</p>
+<pre class="r"><code>source(&#39;./helpers.R&#39;)</code></pre>
 <hr />
 <hr />
-<p><strong>Exercise 2</strong> Load the dataset in R using the function
+<p><strong>Exercise 2</strong></p>
+<p><strong>A.</strong> Load the dataset in R using the function
 <code>readRDS()</code>. Give the dataset the name
-<code>emotion_data</code>. Subset the dataset such that we only keep the
+<code>emotion_data</code>.</p>
+<p><strong>B.</strong> Subset the dataset such that we only keep the
 columns indicating the subjects, the day and beep number, and the
-variables we are interested in. Then, inspect the first few rows of the
-data.</p>
+variables we are interested in.</p>
+<p><strong>C.</strong> Inspect the first few rows of the data.</p>
 <hr />
 <hr />
 <p><strong>Exercise 3</strong> Inspect the data over time using
@@ -1644,7 +1645,8 @@ of missing values for each subject for each night gap. Call the new
 dataset <code>emotion_nightgap</code>.</p>
 <pre class="r"><code>emotion_nightgap &lt;- insert_nightgap(data = emotion_data, # make sure the first column contains the subject IDs, and the second column contains the day numbers
                                     beeps_per_night = 8, # we want to insert 8 beeps for each night
-                                    ndays = 40 # number of days in the study (constant over subjects)
+                                    col_id = 1, # the first column contains the subject IDs
+                                    col_day = 2 # the second column contains the day numbers
                                     )</code></pre>
 </div>
 <div id="setting-up-the-multilevel-hidden-markov-model" class="section level2">
@@ -1664,31 +1666,27 @@ hidden Markov model.</p>
 <hr />
 <div id="starting-values" class="section level3">
 <h3>Starting Values</h3>
-<p>The next step is to specify starting values for the model parameters.
-<code>start_gamma</code> should be a <code>m</code> by <code>m</code>
-matrix and <code>start_emiss</code> should be a list with the number of
-elements equal to the the number of dependent variables used specified
-in <code>n_dep</code>. Each element within the list should be a matrix
-with 2 columns and <code>m</code> rows. The Normal emission distribution
-means are contained in the first column of this matrix, and the standard
-deviations of the state specific Normal emission distribution are
-contained int the second column of the matrix.</p>
-<p>Make sure that the starting values are sensible. That is, for gamma,
-usually the elements contained on the diagonal (i.e., the
-self-transitions) are larger than the off-diagonal values to indicate
-that from one timepoint to another, subjects are more likely to remain
-in the same state than to switch to a new one.</p>
-<p>With respect to the emission distribution, if we assume a 2-state
-model, it is sensible to assume that we will have a ‘positive emotion’
-state and a ‘negative emotion’ state. Define the means of the variable
-and state specific emission distributions to align with this idea. Do
-not use equivalent means for one dependent variable over the states!
-Sensible would be to base it on the observed data. We can look at the
-observed range for each variable, and split the data in 2 in the middle
-of this range, creating 2 subsets. This is the approach we will take.
-Do, however, make sure that the starting values are not too close to the
-boundary of the observed range, and that the starting values for each
-state are not too far apart in relation to the standard deviation.</p>
+<p>We first need to provide ‘starting’ values for the group-level means
+and standard deviations for each variable in each state, as well as for
+the transition probabilities. The model needs this information to
+complete the first pass of the iterative estimation algorithm. Sensible
+initial values help to avoid label switching in the sampling process and
+are therefore recommended.</p>
+<p>We will start with the specification of sensible starting values of
+the emission distribution (i.e. the state-specific means and standard
+deviation). If we assume a 2-state model, it is sensible to assume that
+we will have a ‘positive emotion’ state and a ‘negative emotion’ state.
+Define the means of the variable and state specific emission
+distributions to align with this idea. <strong>Do not use equivalent
+means for one dependent variable over the states!</strong> Sensible
+would be to base it on the observed data; we can look at the observed
+range for each variable, and split the data in 2 in the middle of this
+range, creating 2 subsets. Within each subset, we can then evaluate the
+median and use these as starting values. This is the approach we will
+take. Do, however, make sure that the starting values are not too close
+to the boundary of the observed range, and that the starting values for
+each state are not too far apart in relation to the standard
+deviation.</p>
 <p>Regarding the standard deviations of the emission distribution,
 define them such that the emission distribution for state 1 and 2
 together cover the entire range of observations (remember, participants
@@ -1697,8 +1695,14 @@ example, given our data, it would not make sense to use a standard
 deviation of 3 (as 95% of the mass of the distribution will only span
 mean+/- 2 * 3 values out of 100), but a standard deviation of 10 or 15
 would make sense.</p>
+<p>Also make sure that the combinations of starting values for the
+different variables are sensible, which is where theory comes in. It
+will not make sense, for example, to specify the starting values of
+State 1 such that it has a high mean for both ‘happy’ and
+‘depressed’.</p>
 <p><strong>Exercise 6</strong></p>
-<p>Determine starting values for the emission distributions.</p>
+<p><strong>A.</strong> Determine starting values for the emission
+distributions.</p>
 <pre class="r"><code># Determine observed range
 apply(emotion_mHMM[, 2:5], 2, range, na.rm = TRUE) # observed range is from 0 to 100 for all variables
 
@@ -1709,24 +1713,37 @@ apply(emotion_mHMM[, 2:5], 2, function(x){
 })
 
 ## The lower proposed starting values for anxious and depressed are quite close to the boundary, so we should bring the starting values for state 1 and 2 closer together for these variables.</code></pre>
-<p><strong>Exercise 6</strong> Set up the first set of model input
-arguments: <code>m</code> for the number of states the model should
-infer, <code>n_dep</code> for the number of dependent variables used for
-fitting the model, and starting values for gamma and the emission
-distribution, saved in the objects <code>start_gamma</code> and
-<code>start_emiss</code>, respectively.</p>
+<p><strong>B</strong> Set up the first set of model input arguments:
+<code>m</code> for the number of states the model should infer,
+<code>n_dep</code> for the number of dependent variables used for
+fitting the model, and starting values for the emission distribution,
+saved in the object <code>start_emiss</code>. It should be a list with
+<code>n_dep</code> elements. Each element within the list should be a
+matrix with 2 columns and <code>m</code> rows. The means are contained
+in the first column of this matrix, and the standard deviations are
+contained in the second column of the matrix.</p>
 <pre class="r"><code># setting up input parameters, part 1
 m &lt;- 2
 n_dep &lt;- 4
-
-start_gamma &lt;- matrix(c(..., ...,
-                        ..., ...), byrow = TRUE, ncol = m, nrow = m)
 
 start_emiss &lt;- list(matrix(c(..., ...,                                     # happy
                              ..., ...), byrow = TRUE, ncol = 2, nrow = m),
                     ...,                                     # relaxed,
                     ...,                                     # anxious 
                     ...                                     # depressed)</code></pre>
+<p>The next step is to specify starting values for the transition
+probabilities. <code>start_gamma</code> should be a <code>m</code> by
+<code>m</code> matrix. The elements on each row should sum to 1.</p>
+<p>Make sure that the starting values are sensible. That is, for gamma,
+usually the elements contained on the diagonal (i.e., the
+self-transitions) are larger than the off-diagonal values to indicate
+that from one timepoint to another, subjects are more likely to remain
+in the same state than to switch to a new one.</p>
+<p><strong>C.</strong> Set up the starting values for the transition
+probabilities in the object <code>start_gamma</code> using the starter
+code below.</p>
+<pre class="r"><code>start_gamma &lt;- matrix(c(..., ...,
+                        ..., ...), byrow = TRUE, ncol = m, nrow = m)</code></pre>
 <hr />
 <hr />
 </div>
@@ -1744,36 +1761,41 @@ function.</p>
 <p><strong>Exercise 7</strong> Use the <code>help()</code> function to
 inspect the function <code>prior_emiss_cont()</code> and its
 arguments.</p>
-<p>A few considerations should be made when setting up the priors. -
-emiss_mu0: the parameters specifying the means for the Normal emission
-distribution. The means should align with the hypothesized structure of
-a ‘positive emotion’ and a ‘negative emotion’ state. Do not use
-equivalent means over states within the same dependent variable. It
+<p>A few considerations should be made when setting up the priors.</p>
+<ul>
+<li>emiss_mu0: the parameters specifying the means for the Normal
+emission distribution. The means should align with the hypothesized
+structure of a ‘positive emotion’ and a ‘negative emotion’ state. Do not
+use equivalent means over states within the same dependent variable. It
 should be a list of <em>n_dep</em> matrices (one for each observed
 variable), each with 1 row and <em>m</em> columns (one for each state).
 The first matrix for example, specifies the prior for the means of
-‘happy’ in state 1 and state 2. - emiss_K0: the parameters specifying
-the degrees of freedom for the prior on the means. This can be
-interpreted as the number of hypothetical observations the prior for the
-mean (emiss_mu0) is based on. A higher value will make the prior more
-informative. It should be a list with <em>n_dep</em> elements (one for
-each observed variable), each containing a single value. - emiss_V: the
-parameters specifying the hypothesized between-person variance for their
-means on each state. It should be a list with <em>n_dep</em> elements
-(one for each observed variable), each containing a single value. -
-emiss_nu: the parameters specifying the degrees of freedom for the prior
-on the standard deviations. This can be interpreted as the number of
-hypothetical observations the prior for the variance (emiss_V) is based
+‘happy’ in state 1 and state 2.</li>
+<li>emiss_K0: the parameters specifying the degrees of freedom for the
+prior on the means. This can be interpreted as the number of
+hypothetical observations the prior for the mean (emiss_mu0) is based
 on. A higher value will make the prior more informative. It should be a
 list with <em>n_dep</em> elements (one for each observed variable), each
-containing a single value. - emiss_a0 and emiss_b0: the parameters
-specifying respectively the shape and rate of the Inverse Gamma prior on
-the within-state variances. For an uninformative specification, this is
-generally set to a low number, such as 0.001 together with the emiss_b0
-parameter. More sensible however, is to specify a weakly informative
-prior, determined by plotting combinations of values for ‘emiss_a0’ and
-’emiss_b0. Both should be a list with <em>n_dep</em> elements (one for
-each observed variable), each containing a single value.</p>
+containing a single value.</li>
+<li>emiss_V: the parameters specifying the hypothesized between-person
+variance for their means on each state. It should be a list with
+<em>n_dep</em> elements (one for each observed variable), each
+containing a single value.</li>
+<li>emiss_nu: the parameters specifying the degrees of freedom for the
+prior on the standard deviations. This can be interpreted as the number
+of hypothetical observations the prior for the variance (emiss_V) is
+based on. A higher value will make the prior more informative. It should
+be a list with <em>n_dep</em> elements (one for each observed variable),
+each containing a single value.</li>
+<li>emiss_a0 and emiss_b0: the parameters specifying respectively the
+shape and rate of the Inverse Gamma prior on the within-state variances.
+For an uninformative specification, this is generally set to a low
+number, such as 0.001 together with the emiss_b0 parameter. More
+sensible however, is to specify a weakly informative prior, determined
+by plotting combinations of values for ‘emiss_a0’ and ’emiss_b0. Both
+should be a list with <em>n_dep</em> elements (one for each observed
+variable), each containing a single value.</li>
+</ul>
 <p>Below, we show an example of such a plot for a weakly informative
 inverse gamma prior, with a shape of 1.5 and a rate of 20.</p>
 <pre><code>## Warning: Removed 2777 rows containing non-finite outside the scale range
@@ -1803,17 +1825,17 @@ emotion_prior_emiss &lt;- prior_emiss_cont(
 <div id="fitting-the-multilevel-hidden-markov-model" class="section level2">
 <h2>Fitting the multilevel hidden Markov model</h2>
 <p>Now we will use all ingredients to fit a 2 state multilevel hidden
-Markov model using the function <code>mHMM()</code>. For now, we
-recommend setting the number of iterations <code>J</code> as part of the
-input parameter <code>mcmc</code> to 500, and specify a burn in
-(<code>burn_in</code>) of 200. On a reasonably fast laptop, this should
-take about 10 minutes. In the meantime, you can have a nice conversation
-with your neighbor or workshop instructor :) . When fitting a multilevel
-hidden Markov model for research purposes, we recommend using at least
-2.000 iterations, and using traceplots and the Gelman Rubin statistic to
-ensure convergence with the used number of iterations and the
-appropriate burn in period. We will discuss this in the second practical
-of this workshop.</p>
+Markov model using the function <code>mHMM()</code>. For now, set the
+number of iterations <code>J</code> as part of the input parameter
+<code>mcmc</code> to 500, and specify a burn in (<code>burn_in</code>)
+of 200. On a reasonably fast laptop, this should take about 10 minutes.
+In the meantime, you can have a nice conversation with your neighbor or
+workshop instructor :) . When fitting a multilevel hidden Markov model
+for research purposes, we recommend using at least 2.000 iterations, and
+using traceplots and the Gelman Rubin statistic to ensure convergence
+with the used number of iterations and the appropriate burn in period.
+We will discuss convergence in the second practical of this
+workshop.</p>
 <hr />
 <p><strong>Exercise 9</strong> Fit a 2 state multilevel hidden Markov
 model using the function <code>mHMM()</code>, and save your fitted model
@@ -1822,20 +1844,32 @@ general structure of the <code>mHMM()</code> function, you only have to
 fill in the dots. The provided code assumes continuous observations, no
 level 2 covariates and only a prior on the Normal emission
 distribution.</p>
-<p>Note: the starting values which need to specified at the argument
-<code>start_val</code> should be a list, which in the first element
-contains the starting values for the transition probabilities gamma, and
-in the subsequent elements contain the starting values for the emission
-distributions for each of the dependent variables. Hence, the list
-provided to <code>start_val</code> should be a list containing 1 +
-<code>n_dep</code> elements. The list cannot be a nested list (i.e., a
-list containing multiple levels of nesting).</p>
+<p>The function <code>mHMM()</code> takes the following arguments that
+are relevant for now:</p>
+<ul>
+<li>s_data: the dataset to build the model for. The first column should
+contain the subject IDs, and the subsequent columns should contain the
+dependent variables.</li>
+<li>data_distr: the distribution of the dependent variables.
+“continuous” in our case, but also takes “categorical” and “count”.</li>
+<li>gen : a list containing the number of states <code>m</code> and the
+number of dependent variables <code>n_dep</code>.</li>
+<li>start_val: a list of starting values with <code>n_dep</code> + 1
+elements. The first element should contain the matrix of starting values
+for the transition probabilities. Subsequent elements should contain the
+starting values for the emission distributions for each of the dependent
+variables. It should not be a nested list (i.e. make sure it does not
+consist of lists within lists).</li>
+<li>mcmc: a list containing the number of iterations <code>J</code> and
+the burn in period <code>burn_in</code>.</li>
+</ul>
 <pre class="r"><code># Run a model without covariate(s) and default priors:
+set.seed(...)
 out_2st_emotion &lt;- mHMM(s_data = ...,
                 data_distr = &quot;continuous&quot;,
                 gen = list(m = ..., n_dep = ...),
                 start_val = ...,
-                mcmc = list(J = ..., burn_in = ...))</code></pre>
+                mcmc = list(J = 500, burn_in = 200))</code></pre>
 <hr />
 </div>
 <div id="inspecting-general-model-output" class="section level2">
@@ -1874,7 +1908,7 @@ package available on GitHub to visualize output created using the
 library(ggmHMM)</code></pre>
 <hr />
 <p><strong>Exercise 12</strong> Visualize the group level transition
-probabilities gamma using a heatmap. You can eather use the helper
+probabilities gamma using a heatmap. You can either use the helper
 function <code>PlotHeat()</code> or the <code>ggmHMM</code> function
 <code>plot_gamma()</code>.</p>
 <pre class="r"><code>PlotHeat(gamma_group)</code></pre>
@@ -1894,7 +1928,7 @@ PlotEmiss(model = out_2st_emotion, parameter = &quot;SD&quot;) # standard deviat
 plot_dens(model = out_2st_emotion) # density plot
 
 # Use the ggmHMM package
-plot_emiss(model = out_2st_emotion, line = TRUE) # bar chart</code></pre>
+plot_emiss(model = out_2st_emotion, subject_effects = FALSE) # bar chart</code></pre>
 <hr />
 </div>
 <div id="obtaining-the-most-likely-sequence-of-hidden-states" class="section level2">
@@ -1910,6 +1944,13 @@ algorithm is implemented in the function <code>vit_mHMM()</code>. The
 required input is the object that contains the fitted model generated by
 the function <code>mHMM()</code>, and the data used as input when
 fitting the multilevel hidden Markov model.</p>
+<p>The relevant arguments for the function <code>vit_mHMM()</code>
+are:</p>
+<ul>
+<li>object: the fitted model object created by the function
+<code>mHMM()</code></li>
+<li>s_data: the dataset used to build the model</li>
+</ul>
 <hr />
 <p><strong>Exercise 14</strong> Using the function
 <code>vit_mHMM()</code>, the object <code>out_2st_emotion</code>
@@ -1920,12 +1961,23 @@ and inspect the object.</p>
 <hr />
 <p>To inspect the obtained most likely state sequences, plotting them is
 most useful. State sequences can be plotted per subject, or
-alternatively, together with the observed data.</p>
+alternatively, together with the observed data. The <em>ggmHMM</em>
+package contains a function <code>plot_viterbi()</code>, which can be
+used to plot a barcode plot of the most likely state sequences over
+time. It takes the following arguments:</p>
+<ul>
+<li>states: the state sequences obtained using the function
+<code>vit_mHMM()</code>, or an object created using
+<code>mHMM()</code>.</li>
+<li>s_data: a dataframe used to build the model. Not necessary when
+<code>states</code> is an object created using
+<code>vit_mHMM()</code>.</li>
+<li>subject: an integer or vector specifying the subjects to plot.</li>
+</ul>
 <hr />
-<p><strong>Exercise 15</strong></p>
-<p>Use the <em>ggmHMM</em> function <code>plot_viterbi()</code> to plot
-the inferred state sequence over a time for a selection of the subjects
-within the data.</p>
+<p><strong>Exercise 15</strong> Use the <em>ggmHMM</em> function
+<code>plot_viterbi()</code> to plot the inferred state sequence over a
+time for a selection of the subjects within the data.</p>
 <hr />
 </div>
 <div id="conclusion" class="section level2">
@@ -1937,14 +1989,18 @@ most likely sequence of hidden states. In the next practical, we well
 focus on the model selection problem (how many states should we use),
 obtaining and interpreting subject specific parameters, and model
 checking (inspecting convergence and using posterior predictive checks
-to assure a good match between the model and the observed data). If you
-finished early with this part, feel free to already start on the second
-part (or take a slightly longer break).</p>
+and pseudoresiduals to assure a good match between the model and the
+observed data). If you finished early with this part, feel free to
+already start on the second part (or take a slightly longer break).</p>
 <hr />
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
 <ul>
+<li>Aarts, E., &amp; Haslbeck, J. M. B. (2025, April 3). Modelling
+Psychological Time Series with Multilevel Hidden Markov Models: A
+Numerical Evaluation and Tutorial. PsyArXiv Doi:
+10.31234/osf.io/y2u5s_v2.</li>
 <li>Haslbeck, J., Ryan, O., &amp; Dablander, F. (2023). Multimodality
 and skewness in emotion time series. Emotion, 23(8), 2117–2141. DOI:
 10.1037/emo0001218.</li>
