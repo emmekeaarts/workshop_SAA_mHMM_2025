@@ -18,17 +18,31 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 library(mHMMbayes)
 library(ggplot2)
-library(viridis)
-library(reshape2)
+devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
+library(ggmHMM)
 emotion_data <- readRDS("./data/data_Rowland2020.rds")
 out_2st_emotion <- readRDS("./data/out_2st_emotion.rds")
+source('../helpers.R')
+library(coda)
 ```
 
-This is the second practical, we will dive into more advanced matters: model selection, subject specific parameters, covariates, and model fit. We continue with the same dataset: the open access dataset from Rowland and Wenzel (2020) containing the affective experiences *happy*, *excited*, *relaxed*, *satisfied*, *angry*, *anxious*, *depressed*, and *sad*, measured six times a day for 40 days in total. In contrary to the first practical, the different parts do not build upon one another, so you are free to choose any order you like, starting with the topic you find most interesting. There is quite some material and it is likely you will not be able to finish all of them (most likely around 2 topics), but the topics you have skipped can be completed at your own convenience at a later moment. 
+```{r setup-data, include=FALSE}
+emotion_data <- readRDS("./data/data_Rowland2020.rds")
+emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')]
+emotion_nightgap <- insert_nightgap(data = emotion_data, # make sure the first column contains the subject IDs, and the second column contains the day numbers
+                                    beeps_per_night = 8, # we want to insert 8 beeps for each night
+                                    col_id = 1, # the first column contains the subject IDs
+                                    col_day = 2 # the second column contains the day numbers
+                                    )
+emotion_mHMM <- emotion_nightgap[,c('subj_id', 'happy', 'relaxed', 'anxious', 'depressed')]
+```
+
+
+This is the second practical, we will dive into more advanced matters: model selection, subject specific parameters, covariates, and model fit. We continue with the same dataset: the open access dataset from Rowland and Wenzel (2020), using the subset of the affective experiences *happy*, *relaxed*, *anxious*, and *depressed*, measured six times a day for 40 days in total. 
 
 The answers to the practicals are available in the `*_answers.html` files. Try to work out the answer yourself (e.g., inspecting help files and examples in them provided in the `mHMMbayes` package, looking at the tutorial vignette available online) before looking at this!
 
-In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.0.0. You can load the package like 
+In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.1.0. You can load the package like 
 
 ```{r, eval=FALSE}
 library(mHMMbayes)
@@ -37,21 +51,133 @@ library(mHMMbayes)
 In this practical, we will also use the following packages:
 
 ```{r, eval=FALSE}
-library(ggplot2)
-library(reshape2)
-library(viridis)    # optional
+# install.packages("coda")
+library(ggplot2) # for plotting
+library(ggmHMM) # plotting mHMM objects
+library(coda) # for assessing convergence
 ```
+
+We will also, again, make use of our helper functions
+```{r, include = FALSE}
+source('../helpers.R')
+```
+
+```{r, eval = FALSE}
+source('./helpers.R')
+```
+
+## Subject specific parameters
+
+In this section, we obtain and inspect the subject specific parameters.
+
+### Emission distribution 
+We first need to obtain the subject specific emission distribution parameters, and save the subject specific parameters in an object. When focusing on the emission distribution parameters, the function `obtain_emiss()` can be used to obtain the subject specific emission distribution parameters, by setting the input argument `level` to `"subject"`. Note that the default of `level` is `"group"`, so when left unspecified, the function `obtain_emiss()` will return the group level emission distribution parameters. 
+
+---
+
+**Exercise 1**
+Obtain the subject specific emission distribution parameters using the function `obtain_emiss()` and set the input argument `level` to `"subject"`. Save the output in the object `emiss_subject`. Inspect the output. 
+
+```{r, include = params$answers}
+# obtaining and saving the subject specific transition probabilities
+emiss_subject <- obtain_emiss(out_2st_emotion, level = "subject")
+```
+
+---
+
+Again, to develop an intuition on how much the emission distribution parameters (e.g., the variable and state specific means) vary over subjects, it can be helpful to plot the subject specific emission distribution parameters, for example by adding the subject specific parameters as dots to a group level barplot of the emission means. This can be done using the helper function `PlotEmiss()` or the *ggmHMM* function `plot_emiss()`.
+
+---
+
+**Exercise 2**
+Plot (a subset of) the subject specific emission distribution means, using the helper function `PlotEmiss()` or the function `plot_emiss()` from the *ggmHMM* package and investigate how much the means differ over subjects. Hint: both functions have the argument `subject`, which can be used to specify a vector of subjects to plot random effects for.
+
+```{r, include = params$answers}
+PlotEmiss(model = out_2st_emotion, parameter = "Means", ranef = TRUE, subject = 1:50) # using helper function
+plot_emiss(out_2st_emotion, subject_effects = TRUE, line = FALSE, subject = 1:50) # using ggmHMM function
+```
+
+---
+
+In addition, it is important to check that the states represent the same construct over subjects. Working with our current dataset, that would mean that for each subject, state 1 represents a 'good mood' state, and state 2 represents a 'bad mood' state. For example, for the indicator *happy*, that would translate to the mean of state 1 being higher compared to state 2. Visually, this can be checked by connecting the subject specific means over the states within one indicator by lines.
+
+---
+
+**Exercise 3**
+Plot (a subset of) the subject specific emission distribution means connecting the subject specific means, and visually investigate whether the state 1 is a relatively good state and state 2 a relatively bad state over subjects. Hint: this can be done by specifying `line = TRUE` in `PlotEmiss()` or `plot_emiss()`.
+
+```{r, include = params$answers, fig.height=4}
+## plot, first 50 subjects to aid interpretability
+PlotEmiss(model = out_2st_emotion, parameter = "Means", ranef = TRUE, line = TRUE, subject = 1:50) # using helper function
+plot_emiss(out_2st_emotion, subject_effects = TRUE, line = TRUE, subject = 1:50) # using ggmHMM function
+```
+
+---
+
+### Transition probabilities gamma
+First, we need to obtain the subject specific parameters for the emissions and the transition probabilities. When focusing on the transition probabilities gamma, the function `obtain_gamma()` can also be used to obtain the subject specific transition probabilities, by setting the input argument `level` to `"subject"`. Note that the default of `level` is `"group"`, so when left unspecified, the function `obtain_gamma()` will return the group level transition probabilities. 
+
+---
+
+**Exercise 4**
+Obtain the subject specific transition probabilities using the function `obtain_gamma()` and set the input argument `level` to `"subject"`. Save the output in the object `gamma_subject`. Inspect the output. 
+
+```{r, include = params$answers}
+# obtaining and saving the subject specific transition probabilities
+gamma_subject <- obtain_gamma(out_2st_emotion, level = "subject")
+
+# inspecting the output, restring the returned output to the first 10 subjects
+gamma_subject[1:10]
+```
+
+Note that it can be quite insightful to compare the subject specific transition probabilities to the plotted state sequences (see practical 1). Subjects with large self-transitions (i.e., probabilities that denote a transition to the same state as the current state, provided on the diagonal of the transition probability matrix) will probably remain for a long time within a state, while low self-transition probabilities most likely will translate to state sequences where a state is only visited for a short consecutive sequence.   
+
+---
+
+To develop an intuition on how much the transition probabilities vary over subjects, it can be helpful to plot the subject specific state transition probabilities, for example in a heat map with one row per subject, or in stacked dots with a dot for each subject specific transition probability, and columns for each of the possible state transitions. 
+
+---
+
+**Exercise 5**
+Plot (a subset of) the subject specific transition probabilities, and investigate how much the transition probabilities differ over subjects. This can be done in 2 ways:
+
+* With the helper function `PlotHeat()`, a single heatmap may be plotted, by subsetting the list `gamma_subject`.
+* With the function `plot_gamma()` from the *ggmHMM* package, a heatmap may be plotted for each subject (or a subset) separately. This can be done by 
+  + setting the input argument `subject_effects` to `TRUE`, and 
+  + setting the input argument `subject` to a vector of subject IDs (e.g., `1:10`), or a single number do specify the subject.
+  + specify `ncol_facet` to setup the layout
+
+```{r, include = params$answers}
+# Transition probabilities of first subject using helper function
+gamma_subset <- gamma_subject[[1]] # subset
+PlotHeat(gamma_subset) # plot
+
+# Transition probabilities of first 10 subjects using ggmHMM function
+plot_gamma(out_2st_emotion, level = "subject", subject = 1:10, ncol_facet = 5) # plot with facets
+```
+
+**Exercise 6**
+Interpret the transition probabilities. To what extent would you say that subjects differ in their transition probabilities? Are subjects generally more likely to stay in the same state, or switch states? What does this mean, if we take the substantive interpretation of the states into account?
+
+Note that for a two-state model, the information given by the transition probabilities is limited; The diagonals inform us about the probability of remaining in a state (and therefore the stability/duration of states), but the off-diagonals do not provide us with unique information; if a subject goes out of the state, they only have one left to go to. A three-state model may have more interesting information to provide. It could tell us, for example, whether a subject is more likely to immediately switch between a 'good' and a 'bad' state, or whether they generally move through a 'medium' state first.
+
+---
 
 ## Model selection
 
 ### Fit models with a plausible number of states
 
-One of the challenges when using hidden Markov models is the number of states to choose. Here, we will limit ourselves to models with 2, 3, and 4 states. As model checking is discussed at a later point in the practical, we will investigate the different models based on the state composition and the model fit criterion AIC. The 2-state model was fitted in the first practical, and saved in the object `out_2st_emotion`. 
+One of the challenges when using hidden Markov models is the number of states to choose. Here, we will limit ourselves to models with 2, 3, and 4 states. As checking model fit is discussed at a later point in the practical, we will investigate the different models based on the state composition and the AIC. However, it should be noted that convergence and model fit are important characteristics that should be considered when choosing a model to interpret. The 2-state model was fitted in the first practical, and saved in the object `out_2st_emotion`. 
 
 ---
 
-**Exercise 1**
-Fit a 3- and 4- state multilevel HMM model, and save the fitted models in the objects `out_3st_emotion` and `out_4st_emotion`, respectively. Again we recommend 500 MCMC iterations and a burn-in of 200, or a bit less if this takes a lot of time on your laptop. Note that with these new models, also new starting values and and hyper-prior parameter values have to be specified. To speed up the process somewhat, below a suggestion for new starting and prior values is given in a starter script. 
+**Exercise 7**
+To save time we have already pre-run a 3-state and 4-state model. Use the function `readRDS()` to load the fitted models from the files `out_3st_emotion.rds` and `out_4st_emotion.rds`, and save them in the objects `out_3st_emotion` and `out_4st_emotion`.
+
+```{r}
+out_3st_emotion <- readRDS("./data/out_3st_emotion.rds")
+out_4st_emotion <- readRDS("./data/out_4st_emotion.rds")
+```
 
 ```{r, echo = TRUE}
 ####################
@@ -60,7 +186,7 @@ Fit a 3- and 4- state multilevel HMM model, and save the fitted models in the ob
 
 ## general model properties
 m <- 3
-n_dep <- 8
+n_dep <- 4
 
 ## starting values for gamma
 start_gamma_3st <- matrix(c(0.8, 0.1, 0.1,
@@ -70,26 +196,14 @@ start_gamma_3st <- matrix(c(0.8, 0.1, 0.1,
 ## starting values for the emission distribution 
 start_emiss_3st <- list(matrix(c(80, 10,                                     # happy
                              50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # excited
-                             50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
+                             20, 10), byrow = TRUE, ncol = 2, nrow = m),
                     matrix(c(80, 10,                                     # relaxed
                              50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # satisfied
-                             50, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # angry
-                             30, 10,
-                             50, 15), byrow = TRUE, ncol = 2, nrow = m), 
+                             20, 10), byrow = TRUE, ncol = 2, nrow = m),
                     matrix(c(10,  5,                                     # anxious
                              30, 10,
                              50, 15), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # depressed
-                             30, 10,
-                             50, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # sad
                              30, 10,
                              50, 15), byrow = TRUE, ncol = 2, nrow = m))
 
@@ -97,13 +211,9 @@ start_emiss_3st <- list(matrix(c(80, 10,                                     # h
 emotion_prior_emiss_3st <- prior_emiss_cont(
   gen = list(m = m, n_dep = n_dep),
   emiss_mu0 = list(matrix(c(80, 50, 20), nrow = 1),  # happy
-                   matrix(c(80, 50, 20), nrow = 1),  # excited
                    matrix(c(80, 50, 20), nrow = 1),  # relaxed
-                   matrix(c(80, 50, 20), nrow = 1),  # satisfied
-                   matrix(c(10, 30, 50), nrow = 1),  # angry
                    matrix(c(10, 30, 50), nrow = 1),  # anxious
-                   matrix(c(10, 30, 50), nrow = 1),  # depressed
-                   matrix(c(10, 30, 50), nrow = 1)), # sad 
+                   matrix(c(10, 30, 50), nrow = 1)),  # depressed
   emiss_K0 = rep(list(1), n_dep),
   emiss_V = rep(list(rep(5^2, m)), n_dep),
   emiss_nu = rep(list(1), n_dep),
@@ -119,7 +229,6 @@ emotion_prior_emiss_3st <- prior_emiss_cont(
 
 ## general model properties
 m <- 4
-n_dep <- 8
 
 ## starting values for gamma
 start_gamma_4st <- matrix(c(0.7, 0.1, 0.1, 0.1,
@@ -132,31 +241,15 @@ start_emiss_4st <- list(matrix(c(80, 10,                                     # h
                              60, 10,
                              40, 10,
                              20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # excited
-                             60, 10,
-                             40, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(80, 10,                                     # relaxed
                              60, 10,
                              40, 10,
                              20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # satisfied
-                             60, 10,
-                             40, 10,
-                             20, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # angry
-                             20, 10,
-                             40, 10,
-                             60, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # anxious
-                             320, 10,
+                             20, 10,
                              40, 10,
                              60, 10), byrow = TRUE, ncol = 2, nrow = m), 
                     matrix(c(10,  5,                                     # depressed
-                             20, 10,
-                             40, 10,
-                             60, 10), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(10,  5,                                     # sad
                              20, 10,
                              40, 10,
                              60, 10), byrow = TRUE, ncol = 2, nrow = m))
@@ -165,13 +258,9 @@ start_emiss_4st <- list(matrix(c(80, 10,                                     # h
 emotion_prior_emiss_4st <- prior_emiss_cont(
   gen = list(m = m, n_dep = n_dep),
   emiss_mu0 = list(matrix(c(80, 60, 40, 20), nrow = 1),  # happy
-                   matrix(c(80, 60, 40, 20), nrow = 1),  # excited
                    matrix(c(80, 60, 40, 20), nrow = 1),  # relaxed
-                   matrix(c(80, 60, 40, 20), nrow = 1),  # satisfied
-                   matrix(c(10, 20, 40, 60), nrow = 1),  # angry
                    matrix(c(10, 20, 40, 60), nrow = 1),  # anxious
-                   matrix(c(10, 20, 40, 60), nrow = 1),  # depressed
-                   matrix(c(10, 20, 40, 60), nrow = 1)), # sad 
+                   matrix(c(10, 20, 40, 60), nrow = 1)),  # depressed
   emiss_K0 = rep(list(1), n_dep),
   emiss_V = rep(list(rep(5^2, m)), n_dep),
   emiss_nu = rep(list(1), n_dep),
@@ -184,6 +273,7 @@ emotion_prior_emiss_4st <- prior_emiss_cont(
 ```{r, include = params$answers, eval = FALSE}
 # Fitting the 3 state model 
 m <- 3
+set.seed(42)
 out_3st_emotion <- mHMM(s_data = emotion_mHMM,
                         data_distr = "continuous",
                         gen = list(m = m, n_dep = n_dep),
@@ -193,6 +283,7 @@ out_3st_emotion <- mHMM(s_data = emotion_mHMM,
 
 # Fitting the 4 state model 
 m <- 4
+set.seed(42)
 out_4st_emotion <- mHMM(s_data = emotion_mHMM,
                         data_distr = "continuous",
                         gen = list(m = m, n_dep = n_dep),
@@ -201,17 +292,9 @@ out_4st_emotion <- mHMM(s_data = emotion_mHMM,
                         mcmc = list(J = 500, burn_in = 200))
 
 ```
-
-```{r, echo  = FALSE}
-out_3st_emotion <- readRDS("./data/out_3st_emotion.rds")
-out_4st_emotion <- readRDS("./data/out_4st_emotion.rds")
-```
 ---
 
-
----
-
-**Exercise 2**
+**Exercise 8**
 Inspect the general output of the 3- and 4- state models by using the inbuilt `print()` and `summary()` for objects of class `mHMM` returned by the function `mHMM()`.
 
 ```{r, include = params$answers}
@@ -232,83 +315,29 @@ First, we will investigate the composition of the states, and use this to evalua
 
 ---
 
-**Exercise 3**
-Use your code from practical 1 to visualize the group level emission distributions of the 3- and 4-state model and compare to the 2-state model. Note: remember to first save the emission distribution parameters in an object using the function `obtain_emiss()`. Does it seem to make sense to add extra state(s)?
+**Exercise 9**
+Use the helper function `PlotEmiss()` or the function `plot_emiss()` from the *ggmHMM* package to visualize the emission distributions of the three-state and four-state model. Do not plot subject-specific effects. Does it seem to make sense to add extra state(s)?
 
-```{r, include = params$answers, fig.height = 3}
-###############
-# 3 state model 
-###############
-
-emiss_group_3st <- obtain_emiss(out_3st_emotion)
-m <- 3
-## plotting group level emissions, bar plot
-## reshaping data for ggplot to make one plot simultaneously for all dependent variables 
-## meaning: one matrix containing all state and variable dependent means, with state and mood as variable 
-emiss_group_3st <- lapply(emiss_group_3st, function(x,m){rownames(x) <- paste0(1:m);x}, m = m)
-emiss_group_melt_3st <- lapply(emiss_group_3st, melt)
-emiss_group_melt_3st <- do.call(rbind, emiss_group_melt_3st)
-emiss_group_melt_3st <- emiss_group_melt_3st[emiss_group_melt_3st$Var2 == "Mean", c(1, 3)]
-colnames(emiss_group_melt_3st) <- c("State", "Mean")
-emiss_group_melt_3st$Dep <- factor(c(rep(names(emiss_group_3st), each = m)), levels = names(emiss_group_3st))
-emiss_group_melt_3st$State <- factor(emiss_group_melt_3st$State, label = 1:m)
-
-## plot
-ggplot(emiss_group_melt_3st, aes(x = State, y = Mean, fill = Dep)) +
-         geom_bar(stat="identity") +
-  facet_grid(cols = vars(Dep)) + 
-  theme_minimal() +
-  theme(legend.position="none") +
-  xlab("Mood state")
-
-# Note: although the first 2 states do not really differ for the postive affect measures, the first 2 states do differentiate on the negative affect variables. 
-
-###############
-# 4 state model 
-###############
-
-emiss_group_4st <- obtain_emiss(out_4st_emotion)
-m <- 4
-## plotting group level emissions, bar plot
-## reshaping data for ggplot to make one plot simultaneously for all dependent variables 
-## meaning: one matrix containing all state and variable dependent means, with state and mood as variable 
-emiss_group_4st <- lapply(emiss_group_4st, function(x,m){rownames(x) <- paste0(1:m);x}, m = m)
-emiss_group_melt_4st <- lapply(emiss_group_4st, melt)
-emiss_group_melt_4st <- do.call(rbind, emiss_group_melt_4st)
-emiss_group_melt_4st <- emiss_group_melt_4st[emiss_group_melt_4st$Var2 == "Mean", c(1, 3)]
-colnames(emiss_group_melt_4st) <- c("State", "Mean")
-emiss_group_melt_4st$Dep <- factor(c(rep(names(emiss_group_4st), each = m)), levels = names(emiss_group_4st))
-emiss_group_melt_4st$State <- factor(emiss_group_melt_4st$State, label = 1:m)
-
-## plot
-ggplot(emiss_group_melt_4st, aes(x = State, y = Mean, fill = Dep)) +
-         geom_bar(stat="identity") +
-  facet_grid(cols = vars(Dep)) + 
-  theme_minimal() +
-  theme(legend.position="none") +
-  xlab("Mood state")
-
-# Note: the 4th state does differentate the emotions even more, but not as much as adding the third state. 
+```{r, include = params$answers}
+PlotEmiss(model = out_3st_emotion, parameter = "Means") # three-state model with helper function
+plot_emiss(out_4st_emotion, subject_effects = FALSE) + ylim(c(0,100)) # four-state model with ggmHMM function
+# Note: the 4th state differentiates the emotions even more. 
 ```
+---
+
+Next, let's compare the 2-, 3-, and 4-state model on the model selection criterion AIC.
 
 ---
 
-### Consider model selection criteria for guidance
-
-Next, let's compare the 2-, 3-, and 4-state model on the model selection criteria AIC. 
-
-
----
-
-**Exercise 4**
-Obtain the AIC values of the 2-, 3-, and 4-state model using the `print()` function on the mHMM objects `out_2st_emotion`, `out_3st_emotion`, `out_4st_emotion`, and compare. Note: it can be helpful to visualize the AIC values over the states to get a feeling for how much the AIC decreases over the models. 
+**Exercise 10**
+Obtain the AIC values of the 2-, 3-, and 4-state model using the `print()` function on the mHMM objects `out_2st_emotion`, `out_3st_emotion`, `out_4st_emotion`, and compare. It can be helpful to visualize the AIC values over the states to get a feeling for how much the AIC decreases over the models. 
 
 ```{r, include = params$answers, fig.height=4}
 out_2st_emotion
 out_3st_emotion
 out_4st_emotion
 
-AICs <- data.frame(AIC = c(11657.01, 11453.64, 11357.04),
+AICs <- data.frame(AIC = c(5777.631, 5706.932, 5632.095),
                    states = c(2:4))
 ggplot(AICs, mapping = aes(x = states, y = AIC)) +
   geom_point() + 
@@ -316,536 +345,164 @@ ggplot(AICs, mapping = aes(x = states, y = AIC)) +
   ggtitle("AIC over the 2 - 4 state models") + 
   xlab("Number of states") +
   theme_minimal()
-
 ```
 
 ---
 
 As you can see, determining the number of states can be a subjective and tricky endeavor, and depends very much on the data and research question at hand.  
 
-## Subject specific parameters
+## Model fit
+In this section we will inspect model fit, checking convergence, using posterior predictive checks (PPCs), and evaluating Pseudoresiduals. 
 
-In this section, we obtain and inspect the subject specific parameters. To facilitate flexibility in the order of going through this practical, we will base our work (and the answers) on the 2-state model, but feel free to try this with any of the other number of states models. 
-
-### Transition probabilities gamma
-First, we need to obtain the subject specific paramters, and save the subject specific paramters in an object. When focusing on the transition probabilities gamma, the function `obtain_gamma()` can also be used to obtain the subject specific transition probabilites, by setting the input argument `level` to `"subject"`. Note that the default of `level` is `"group"`, so when left unspecified, the function `obtain_gamma()` will return the group level transition probabilities. 
-
----
-
-**Exercise 5**
-Obtain the subject specific transition probabilities using the function `obtain_gamma()` and set the input argument `level` to `"subject"`. Save the output in the object `gamma_subject`. Inspect the output. 
-
-```{r, include = params$answers}
-# obtaining and saving the subject specific transition probabilities
-gamma_subject <- obtain_gamma(out_2st_emotion, level = "subject")
-
-# inspecting the output, restring the returned output to the first 10 subjects
-gamma_subject[1:10]
-```
-
-Note that it can be quite insightful to compare the subject specific transition probabilities to the plotted state sequences. Subjects with large self-transitions (i.e., probabilities that denote a transition to the same state as the current state, provided on the diagonal of the transition probability matrix) will probably remain for a long time within a state, while low self-transition probabilities most likely will translate to state sequences where a state is only visited for a short consequitive sequence.   
-
----
-
-To develop an intuition on how much the transition probabilities vary over subjects, it can be helpful to plot the subject specific state transition probabilities, for example in a heath map with one row per subject, or in stacked dots with a dot for each subject specific transition probability, and columns for each of the possible state transitions. 
-
----
-
-**Exercise 6**
-Plot (a subset of) the subject specific transition probabilities, and investigate how much the transition probabilities differ over subjects. 
-
-```{r, include = params$answers, fig.height=20}
-m <- 2
-n_subj <- out_2st_emotion$input$n_subj
-
-# reshaping data for ggplot
-gg_gamma_subject <- data.frame(Subj = factor(rep(1:n_subj, each = m * m), levels = 1:n_subj),
-                               From_to = factor(paste("From", rep(1:m, m * n_subj), 
-                                                      "to", rep(rep(1:m, each = m), n_subj))), 
-                               Prob = unlist(t(gamma_subject)))
-
-# we plot the data for the first 50 subjects here 
-ggplot(data = gg_gamma_subject[gg_gamma_subject$Subj %in% c(1:50),], aes(x=From_to, y = Subj , fill=Prob)) + 
-  geom_tile(color = "white") +
-  scale_fill_distiller(palette = "Spectral", limits = c(0,1), name = "State switching\n probability") +
-  geom_text(aes(From_to, Subj, label = round(Prob,2)), color = "darkslategrey", size = 3) +
-  theme_minimal()+ 
-  ylab("Subject") + xlab(element_blank()) + 
-  scale_y_discrete(limits=rev) +
-  coord_fixed() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-```
-
----
-
-### Emission distribution 
-Again, we first need to obtain the subject specific emission distribution parameters, and save the subject specific parameters in an object. When focusing on the emission distribution parameters, the function `obtain_emiss()` can be used to obtain the subject specific emission distribution parameters, by setting the input argument `level` to `"subject"`. Note that the default of `level` is `"group"`, so when left unspecified, the function `obtain_emiss()` will return the group level emission distribution parameters. 
-
----
-
-**Exercise 7**
-Obtain the subject specific emission distribution parameters using the function `obtain_emiss()` and set the input argument `level` to `"subject"`. Save the output in the object `emiss_subject`. Inspect the output. 
-
-```{r, include = params$answers}
-# obtaining and saving the subject specific transition probabilities
-emiss_subject <- obtain_emiss(out_2st_emotion, level = "subject")
-```
-
----
-
-Again, to develop an intuition on how much the emission distribution parameters (e.g., the variable and state specific means) vary over subjects, it can be helpful to plot the subject specific emission distribution parameters, for example by adding the subject specific parameters as dots to a group level barplot of the emission means. 
-
----
-
-**Exercise 8**
-Plot (a subset of) the subject specific  emission distribution means, and investigate how much the means differ over subjects. 
-
-```{r, include = params$answers, fig.height=4}
-m <- 2
-n_subj <- out_2st_emotion$input$n_subj
-n_dep <- 8
-
-# reshaping data for ggplot
-vars <- names(emiss_subject)
-gg_emiss_subject <- data.frame(Subj = rep(rep(1:n_subj, each = m), n_dep),
-                               State = rep(1:m, n_subj * n_dep), 
-                               Dep = factor(c(rep(vars, each = m * n_subj)), levels = vars))
-
-gg_emiss_subject$Mean <-c(unlist(lapply(emiss_subject[[1]], "[", 1:m)), 
-                          unlist(lapply(emiss_subject[[2]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[3]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[4]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[5]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[6]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[7]], "[", 1:m)),
-                          unlist(lapply(emiss_subject[[8]], "[", 1:m)))
-
-emiss_group <- obtain_emiss(out_2st_emotion)
-emiss_group <- lapply(emiss_group, function(x,m){rownames(x) <- paste0(1:m);x}, m = m)
-emiss_group_melt <- lapply(emiss_group, melt)
-emiss_group_melt <- do.call(rbind, emiss_group_melt)
-emiss_group_melt <- emiss_group_melt[emiss_group_melt$Var2 == "Mean", c(1, 3)]
-colnames(emiss_group_melt) <- c("State", "Mean")
-emiss_group_melt$Dep <- factor(c(rep(vars, each = m)), levels = names(emiss_group))
-emiss_group_melt$State <- factor(emiss_group_melt$State, label = 1:m)
-
-## plot
-ggplot(emiss_group_melt, aes(x = State, y = Mean, fill = Dep)) +
-  geom_bar(stat="identity") +
-  geom_jitter(data = gg_emiss_subject, aes(x = State, y = Mean, fill = Dep), 
-              alpha = 0.5, colour="black",pch=21) +
-  facet_grid(cols = vars(Dep)) + 
-  theme_minimal() +
-  theme(legend.position="none") +
-  xlab("Mood state")
-
-```
-
----
-
-In addition, it is important to check that the states represent the same construct over subjects. Working with our current dataset, that would mean that for each subject, state 1 represents a 'good mood' state, and state 2 represents a 'bad mood' state. Fore example, for the indicator *happy*, that would translate to the mean of state 1 being higher compared to state 2. Visually, this can be checked by connecting the subject specific means over the states within one indicator by lines. 
-
----
-
-**Exercise 9**
-Plot (a subset of) the subject specific emission distribution means connecting the subject specific means, and visually investigate whether the state 1 is a relatively good state and state 2 a relatively bad state over subjects. 
-
-```{r, include = params$answers, fig.height=4}
-## plot, first 50 subjects to aid interpretability
-ggplot(emiss_group_melt, aes(x = State, y = Mean, fill = Dep)) +
-  geom_bar(stat="identity") +
-  geom_point(data = gg_emiss_subject[gg_emiss_subject$Subj %in% 1:50,], aes(x = State, y = Mean, fill = Dep), 
-             alpha = 0.5, colour="black",pch=21) +
-  geom_line(data = gg_emiss_subject[gg_emiss_subject$Subj %in% 1:50,], aes(x = State, y = Mean, group = Subj), color = "grey", alpha = 0.5) +
-  facet_grid(cols = vars(Dep)) + 
-  theme_minimal() +
-  theme(legend.position="none") +
-  xlab("Mood state")
-
-```
-
----
-
-
-## Covariates 
-In this section we will see if we can explain the differences observed in the subject specific state transition probabilities by the covariate `group`. Group = 1 denotes the subjects that received mindfulness training, while group = 2 represents the subjects that were in a waiting list control group. 
-
-Covariates are specified to the model as a list, where the first element in the list is used to predict the transition matrix. Subsequent elements in the list are used to predict the emission distribution of (each of) the dependent variable(s). As we only want to predict the transition matrix, the subsequent lists will be set to `NULL`. Each (non-null) element in the list is a matrix, with only one row per subject. The first column consists of only ones (representing the intercept), and the subsequent columns contain the covariate(s).  
-
----
-
-**Exercise 10**
-Compose the list containing the covariate in the correct format. To speed up the process, a starter script is given below. Note that the covariate `group` is contained in the dataset `emotion_data`, and still needs to be condensed to only one input per subject. In addition, note that a dichotomous covariate needs to be codes as 0 / 1, so the group variable containing the values 1 and 2 still need to be transformed to only contain the values 0 and 1. 
-
-```{r, eval = FALSE}
-# specify a list with the correct number of elements, where all elements are set to NULL
-covariate <- vector("list", length = 1 + n_dep)
-
-# specify the first element of the list, where the first column consists of ones only,  
-# the second column contains the covariate group, with only one entry per subject
-n_subj <- out_2st_emotion$input$n_subj
-covariate[[1]] <- matrix(c(rep(1,n_subj), 
-                           [INPUT THE COVARIATE HERE]), byrow = FALSE, ncol = 2)
-
-```
-
-```{r, include = params$answers }
-# specify a list with the correct number of elements, where all elements are set to NULL
-covariate <- vector("list", length = 1 + n_dep)
-
-# extract the covariate `group`
-group <- apply(table(emotion_data$subj_id, emotion_data$group), 1, which.max)
-group <- group - 1
-
-# specify the first element of the list, where the first column consists of ones only,  
-# the second column contains the covariate group, with only one entry per subject
-n_subj <- out_2st_emotion$input$n_subj
-covariate[[1]] <- matrix(c(rep(1,n_subj), 
-                           group), byrow = FALSE, ncol = 2)
-covariate
-
-```
-
----
-
-Now, let's fit a 2-state multilevel HMM including the covariate `group` to predict the subject specific state transition probabilities. Note that we can re-use the specified starting values and hyper-prior value specification for the emission distribution from practical 1. 
+### Convergence
+Within any Bayesian analysis, convergence needs to be assessed in order to rule out output resulting from a local (instead of global) maximum. To check this, multiple chains (at least 2, but we recommend using at least 4) need to be run, performing the same analysis but using (slightly) different starting values in each chain. Note that in multilevel hidden Markov models, it is important to still keep sensible starting values when varying these. For example, when modelling continuous or count data, we need to keep the same sensible ordering of $\bar{\mu}_i$ or $\bar{\lambda}_i$ given data and process.  Values of the (weakly informative) prior distributions should be fixed over the chains.
 
 ---
 
 **Exercise 11**
-fit a 2-state multilevel HMM including the covariate `group`, and save the fitted model in the object `out_2st_emotion_cov`. The input argument for specifying a covariate within the function `mHMM()` is `xx`. 
-
-```{r, include = params$answers, eval = FALSE}
-m <- 2
-n_dep <- 8
-
-start_gamma <- matrix(c(0.7, 0.3, 
-                        0.3, 0.7), byrow = TRUE, ncol = m, nrow = m)
-
-start_emiss <- list(matrix(c(70, 15,                                     # happy
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(70, 15,                                     # excited
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(70, 15,                                     # relaxed
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(70, 15,                                     # satisfied
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(15, 10,                                     # angry
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(15, 10,                                     # anxious
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(15, 10,                                     # depressed
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(15, 10,                                     # sad
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m))
-
-emotion_prior_emiss <- prior_emiss_cont(
-  gen = list(m = m, n_dep = n_dep),
-  emiss_mu0 = list(matrix(c(70, 30), nrow = 1),  # happy
-                   matrix(c(70, 30), nrow = 1),  # excited
-                   matrix(c(70, 30), nrow = 1),  # relaxed
-                   matrix(c(70, 30), nrow = 1),  # satisfied
-                   matrix(c(15, 40), nrow = 1),  # angry
-                   matrix(c(15, 40), nrow = 1),  # anxious
-                   matrix(c(15, 40), nrow = 1),  # depressed
-                   matrix(c(15, 40), nrow = 1)), # sad 
-  emiss_K0 = rep(list(1), n_dep),
-  emiss_V = rep(list(rep(5^2, m)), n_dep),
-  emiss_nu = rep(list(1), n_dep),
-  emiss_a0 = rep(list(rep(1.5, m)), n_dep),
-  emiss_b0 = rep(list(rep(20, m)), n_dep),
-)
-
-
-out_2st_emotion_cov <- mHMM(s_data = emotion_mHMM,
-                        data_distr = "continuous",
-                        gen = list(m = m, n_dep = n_dep),
-                        xx = covariate,
-                        start_val = c(list(start_gamma), start_emiss),
-                        emiss_hyp_prior = emotion_prior_emiss,
-                        mcmc = list(J = 500, burn_in = 200))
-```
-
-```{r, echo = FALSE}
-out_2st_emotion_cov <- readRDS("./data/out_2st_emotion_cov.rds")
-```
-
----
-
-Note: when using covariates, the specification of the hyper-prior values changes for that component of the model. In this example, we only specified a covariate predicting the transition probabilities, and as we did not specify specif hyper-prior values for the transition probabilities (i.e., we used the default prior specifications inbuilt within the `mHMMbayes` package for the transition probabilities gamma), nothing changed for the prior specification of the emission distribution. However, please note that if we were to use the covariate to explain differences in the subject specific emission distribution, the hyper prior value specification using `prior_emiss_cont()` function would change. See the help file of this function for more information. 
-
----
+Specify new starting values to fit at least one additional chain for the 2 state multilevel HMM model. Do not yet run the model.
 
 **Exercise 12**
-Inspect the general output of the 2-state model including the covariate by using the inbuilt `print()` and `summary()` for objects of class `mHMM` returned by the `mHMM()` function. 
+To save time, we will provide you with an adittional chain, run with the starting values below. Use the function `readRDS()` to load the fitted model from the file `out_2st_emotion_b.rds`, and save it in the object `out_2st_emotion_b`.
+
+**Note.** The priors that we used may be slightly different from the ones you specified in your model in the first practical. For now, we will ignore this for simplicity, but it is important to use the same settings for the prior when applying the model yourself.
 
 ```{r, include = params$answers}
-out_2st_emotion_cov
-summary(out_2st_emotion_cov)
-
+out_2st_emotion_b <- readRDS("./data/out_2st_emotion_b.rds")
 ```
-
----
-
-As you can see, the package currently does not yet include information on the output of the covariate in the `print()` and `summary()` functions. For covariates on the transition probabilities, parameter estimates related to the covariate(s) are contained in the list named `gamma_cov_bar` included in the output object. For covariates on the emission distribution, parameter estimates related to the covariate(s) are contained in the list named `emiss_cov_bar` (when modelling continuous output, see the function `mHMM()` help file for more information). To be specific, `gamma_cov_bar` is a matrix containing the group level regression coefficients of the Multinomial logistic regression predicting the transition probabilities over the iterations of the hybrid Metropolis within Gibbs sampler. The iterations of the sampler are contained in the rows, and the columns contain the group level regression coefficients. Note that as we are using the multinomial logit transformation of the probabilities, the first state in each row of the transition probability matrix serves as a reference category, and does not have a regression coefficient. 
-
----
-
-**Exercise 13**
-Inspect the regression coefficients related to the covariate `group` using the starter script below. Using the script, you will obtain a summary of the posterior distribution over the MCMC iterations: the mode and the lower and upper limit of the 95\% credibility interval. In case that the credibility interval does not contain zero, it can be seen as a strong indicator that the covariate `group` is indeed related to the subject specific transition probabilities. In addition, a positive regression coefficient signals that for the group coded as 1, the transition probability from state 1 to state 2, and from state 2 to state 2 are increased. A negative regression coefficient ignals that for the group coded as 1, the transition probability from state 1 to state 2, and from state 2 to state 2 are decreased.
 
 ```{r, eval = FALSE}
-burn_in <- ... # fill in the burn-in period you specified in mHMM()
-J <- ...       # fill in the number of MCMC iterations you specified in mHMM()
-
-summary_covariate <- data.frame(median =                                    
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, median),
-                                lower_CrI = 
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.025),
-                                upper_CrI =
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.975))
-
-summary_covariate
-```
-
-```{r, include = params$answers}
-burn_in <- 200
-J <- 500
-
-summary_covariate <- data.frame(median =                                    
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, median),
-                                lower_CrI = 
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.025),
-                                upper_CrI =
-                                  apply(out_2st_emotion_cov$gamma_cov_bar[burn_in:J,], 2, quantile, 0.975))
-
-summary_covariate
-```
-
----
-
-As you can see, the covariate `group` is does not explain the heterogeneity we observe in the subject specific transition probability parameters. This is in line with the original paper, where they also did not find an effect of mindfulness training on the mood factors, albeit tested in a different manner. 
-
-## Model fit
-In this section we will inspect model fit, checking convergence and using posterior predictive checks (PPCs). 
-
-### Convergence
-Within any Bayesian analysis, convergence needs to be assessed in order to rule out output resulting from a local (instead of global) maximum. To check this, multiple chains (at least 2) need to be run, performing the same analysis but using (slightly) different starting values in each chain. Note that in multilevel hidden Markov models, it is important to still keep sensible starting values when varying these. For example, when modelling continuous or count data, we need to keep the same sensible ordering of $\bar{\mu}_i$ or $\bar{\lambda}_i$ given data and process.  Values of the weakly informative prior distributions should be fixed over the chains.
-
----
-
-**Exercise 14**
-Fit at least one additional chain for the 2 state multilevel HMM model specifying new starting values, and save each new fitted model in a new object, e.g., `out_2st_emotion_b`.
-
-```{r, include = params$answers, eval = FALSE}
 m <- 2
-n_dep <- 8
+n_dep <- 4
 
 start_gamma_b <- matrix(c(0.9, 0.1, 
                         0.1, 0.9), byrow = TRUE, ncol = m, nrow = m)
 
 start_emiss_b <- list(matrix(c(80, 10,                                     # happy
                              40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # happy
+                    matrix(c(80, 10,                                     # relaxed
                              40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # happy
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(80, 10,                                     # happy
-                             40, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(5, 5,                                     # angry
+                    matrix(c(5, 5,                                     # anxious
                              30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(5, 5,                                     # angry
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(5, 5,                                     # angry
-                             30, 15), byrow = TRUE, ncol = 2, nrow = m), 
-                    matrix(c(5, 5,                                     # angry
+                    matrix(c(5, 5,                                     # depressed
                              30, 15), byrow = TRUE, ncol = 2, nrow = m))
-
-
 out_2st_emotion_b <- mHMM(s_data = emotion_mHMM,
                         data_distr = "continuous",
                         gen = list(m = m, n_dep = n_dep),
                         start_val = c(list(start_gamma_b), start_emiss_b),
                         emiss_hyp_prior = emotion_prior_emiss,
                         mcmc = list(J = 500, burn_in = 200))
-
-```
-
-```{r, echo = FALSE}
-out_2st_emotion_b <- readRDS("./data/out_2st_emotion_b.rds")
 ```
 
 ---
 
-Evidence for non convergence can be checked in multiple ways. Visually, using trace plots which visualize the parameter estimates over the iterations of the MCMC sampler. The chains should not show any trend and good mixing. Or numerically, with the potential scale reduction factor $\hat{R}$. $\hat{R}$ tests for equality of means of the different chains - the degree to which variance (of the means) between chains exceeds what one would expect if the chains were identically distributed. A value of R-hat below 1.2 is used to indicate convergence. 
+Evidence for non convergence can be checked in multiple ways. A first way is, using trace plots which visualize the parameter estimates over the iterations of the MCMC sampler. The chains should not show any trend and good mixing. Furthermore, we should have no label switching (or at least very little) in the subject-specific parameters (see the section 'label switching' later in the practical)..
 
-For the group level transition probabilities gamma, we will show how to obtain the traceplots. The information on the parameter estimates on the group level transition probabilities over the MCMC iterations are contained in the list `gamma_prob_bar` included in the returned output object when using the function `mHMM()`. 
+The trace plots can be obtained using the *ggmHMM* function `plot_trace()`. For now, the following arguments are relevant:
+
+* model: a model or list of models of class `mHMM`
+* component: "gamma" for transition probabilities, or "emiss" for emission distributions
+* level: "group" for group-level parameters. "subject" for subject-specific parameters.
+* vrb: the variable to plot the trace for. For example, "happy" for the happy variable.
+* subject: Integer specifying the subject to create trace plots for.
 
 ---
 
-**Exercise 14**
-Using the starter script below, inspect the traceplots of the group level transition probabilities. 
-```{r, eval = FALSE}
-burn_in <- ... # fill in the burn-in period you specified in mHMM()
-J <- ...       # fill in the number of MCMC iterations you specified in mHMM()
+**Exercise 13**
 
-data1 <- out_2st_emotion
-data2 <- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 <- out_2st_emotion_c
-
-par(mfrow = c(m,m))
-for(i in 1:m){
-  for(j in 1:m){
-    plot(data1$gamma_prob_bar[,(j + ((i-1) * m))], type = "l", 
-         main = paste("From", i, "to", j), 
-         ylim = c(0,1), col = "coral", ylab = "transition probability", xlab = "iteration")
-    lines(data2$gamma_prob_bar[,(j + ((i-1) * m))], col = "cornflowerblue")
-    # lines(data3$gamma_prob_bar[,(j + ((i-1) * m))], col = "green")
-    abline(h = mean(data1$gamma_prob_bar[((burn_in + 1): J),(j + ((i-1) * m))]), col = "coral")
-    abline(h = mean(data2$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = "cornflowerblue")
-    # abline(h = mean(data3$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = "green")
-  }
-}
-
+**A.** Use `plot_trace()` to create a trace plot for the group-level transition probabilities of the 2-state model. Use both `out_2st_emotion` and `out_2st_emotion_b`.
+```{r, include = params$answers}
+plot_trace(model = list(out_2st_emotion, out_2st_emotion_b),
+           component = "gamma",
+           level = "group")
 ```
+
+**B.** In addition to the group level parameters, it is also important to check convergence at the subject level. Use the function `plot_trace()` to create a trace plot for the subject specific emission means of the first subject, for the variable "happy". Use both `out_2st_emotion` and `out_2st_emotion_b`.
 
 ```{r, include = params$answers}
-burn_in <- 200
-J <- 500
-
-data1 <- out_2st_emotion
-data2 <- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 <- out_2st_emotion_c
-
-par(mfrow = c(m,m))
-for(i in 1:m){
-  for(j in 1:m){
-    plot(data1$gamma_prob_bar[,(j + ((i-1) * m))], type = "l", 
-         main = paste("From", i, "to", j), 
-         ylim = c(0,1), col = "coral", ylab = "transition probability", xlab = "iteration")
-    lines(data2$gamma_prob_bar[,(j + ((i-1) * m))], col = "cornflowerblue")
-    # lines(data3$gamma_prob_bar[,(j + ((i-1) * m))], col = "green")
-    abline(h = mean(data1$gamma_prob_bar[((burn_in + 1): J),(j + ((i-1) * m))]), col = "coral")
-    abline(h = mean(data2$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = "cornflowerblue")
-    # abline(h = mean(data3$gamma_prob_bar[((burn_in + 1) : J),(j + ((i-1) * m))]), col = "green")
-  }
-}
-
+plot_trace(model = list(out_2st_emotion, out_2st_emotion_b),
+           component = "emiss",
+           level = "subject",
+           vrb = "happy",
+           subject = 1) + ylim(c(0,100))
 ```
-
-Note that in addition to the group level parameters, it is also important to check convergence at the subject level. However, this is beyond the current practical. 
 
 ---
 
-For the means of the emission distributions, we will show how to calculate $\hat{R}$. The information on the group level emission distribution means over the MCMC iterations are contained in the list `emiss_mu_bar` included in the returned output object when using the function `mHMM()`. 
+We should also inspect convergence numerically, with the potential scale reduction factor $\hat{R}$. $\hat{R}$ evaluates equality of means of the different chains - the degree to which variance (of the means) between chains exceeds what one would expect if the chains were identically distributed. A value of R-hat below 1.2 is used to indicate convergence. 
+
+We have provided you with a helper function, `f_GR()`, to calculate the group level $\hat{R}$ values. The function takes the following arguments:
+
+* model_list: a list of models (i.e. multiple chains)
+* digits: number of digits to round to. Default is 2.
+* burnin: number of burnin iterations to use. Defaults to the number specified when building the first model.
+
+It returns a list with 2 matrices:
+
+* m_RG_gamma is a matrix with m rows and m-1 columns. This is due to the fact that the transition probabilities are estimated using a multinomial logit model, where only m-1 values are estimated (and the last one is derived from the others).
+* RG_emiss is a matrix with n_dep rows and m columns. Therefore, the value on the first row and the second column refers to $\hat{R}$ for the first dependent variable (e.g. "happy") and the second state.
+
+**Exercise 14**
+Use the function `f_GR()` to calculate the $\hat{R}$ values for the group level transition probabilities and emission distribution means. Did the model reach convergence?
+
+```{r, include = params$answers}
+f_GR(model_list = list(out_2st_emotion, out_2st_emotion_b), 
+      digits = 2, 
+      burnin = 200)
+```
+
+---
+
+### Label Switching
+A concept related to convergence is that of label switching. In a multilevel HMM, it does not matter for the model what the ordering of the states is. For example, a model where State 1 is the 'good' state (e.g. with high "happy" and low "depressed"), and state 2 the 'bad' state, or whether it is the other way around. In the iterative MCMC process, the model may switch the labels of the states over iterations, and therefore the interpretation of the states. This is called label switching. In the mHMM, label switching happens at the subject level, but consequently also affects estimates of the group-level effects. It is important to check to what extent this happens.
 
 ---
 
 **Exercise 15**
-Using the starter script below, inspect the $\hat{R}$ values of the group level emission distribution means. 
- 
-```{r, eval = FALSE}
-burn_in <- ... # fill in the burn-in period you specified in mHMM()
-J <- ...       # fill in the number of MCMC iterations you specified in mHMM()
-n_dep <-  ...  # fill in the number of dependent variables used in mHMM()
-n_chain <- ... # fill in the number of chains used (in the example, 2)
-  
-data1 <- out_2st_emotion
-data2 <- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 <- out_2st_emotion_c
 
-L <- J - burn_in
+For the 3-state model, use `plot_trace()` to create a trace plot for the subject-specific means of the variable "relaxed" for subject number 9. Do the same for the variable "depressed". What do you notice?
 
-emiss_mean_data1 <- emiss_mean_data2 <- emiss_grand_mean <- #  <- emiss_mean_data3
-  emiss_between_chain_var <- emiss_within_chain_var_d1 <- emiss_within_chain_var_d2 <- #emiss_within_chain_var_d3 <-
-  emiss_W <- emiss_GelRub <- vector(mode = "list", n_dep)
-for(j in 1:n_dep){
-    emiss_mean_data1[[j]] <- apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_mean_data2[[j]] <- apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    # emiss_mean_data3[[j]] <- apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_grand_mean[[j]] <- (emiss_mean_data1[[j]] + emiss_mean_data2[[j]]) # + emiss_mean_data3[[j]]) 
-    / n_chain
-    emiss_between_chain_var[[j]] <- L / (n_chain-1) * ((emiss_mean_data1[[j]] - emiss_grand_mean[[j]])^2 + 
-                                                         (emiss_mean_data2[[j]] - emiss_grand_mean[[j]])^2 +
-                                                      # (emiss_mean_data3[[j]] - emiss_grand_mean[[j]])^2
-                                                        )
-    emiss_within_chain_var_d1[[j]] <- (1 / (n_chain-1)) * apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_within_chain_var_d2[[j]] <- (1 / (n_chain-1)) * apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-   # emiss_within_chain_var_d3[[j]] <- (1 / (n_chain-1)) * apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_W[[j]] <- (1/n_chain) * (emiss_within_chain_var_d1[[j]] + emiss_within_chain_var_d2[[j]] # + emiss_within_chain_var_d3[[j]]
-                                   )
-    
-    emiss_GelRub[[j]] <- sqrt(((L - 1)/ L * emiss_W[[j]] + 1/L *  emiss_between_chain_var[[j]] ) / emiss_W[[j]])
-}
+```{r, include=params$answers}
+# for "relaxed"
+plot_trace(model = out_3st_emotion,
+           component = "emiss",
+           level = "subject",
+           vrb = "relaxed",
+           subject = 9)
 
-# Inspect the Gelman Rubin statistic Rhat over all dependent variables and states 
-emiss_GelRub
+# for "depressed"
+plot_trace(model = out_3st_emotion,
+           component = "emiss",
+           level = "subject",
+           vrb = "depressed",
+           subject = 9)
 
-# inspect the mean Gelman Rubin statistic Rhat 
-mean(unlist(emiss_GelRub))
-
-# inspect the percentage of Gelman Rubin statistic Rhat above 1.2 
-sum(unlist(emiss_GelRub) > 1.2) / length(unlist(emiss_GelRub))
-
-
+### There seem to be multiple switches, for example a switch around iteration 30 between state 2 and 3. It switches from state 2 being the "medium" state, with medium values for "relaxed" and "depressed", and state 3 being the "bad" state, with low values for "relaxed" and high values for "depressed", to state 2 being the "bad" state, and state 3 being the "medium" state. It switches back at around iteration 75 and then again at around iteration 325
 ```
 
-```{r, include = params$answers}
-burn_in <- 200
-J <- 500
-n_dep <-  8
-n_chain <- 2
-  
-data1 <- out_2st_emotion
-data2 <- out_2st_emotion_b
-# Optionally, you can add more chains here, e.g.,:
-# data3 <- out_2st_emotion_c
-
-L <- J - burn_in
-
-emiss_mean_data1 <- emiss_mean_data2 <- emiss_grand_mean <- #  <- emiss_mean_data3
-  emiss_between_chain_var <- emiss_within_chain_var_d1 <- emiss_within_chain_var_d2 <- #emiss_within_chain_var_d3 <-
-  emiss_W <- emiss_GelRub <- vector(mode = "list", n_dep)
-for(j in 1:n_dep){
-    emiss_mean_data1[[j]] <- apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_mean_data2[[j]] <- apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    # emiss_mean_data3[[j]] <- apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, mean)
-    emiss_grand_mean[[j]] <- (emiss_mean_data1[[j]] + emiss_mean_data2[[j]]) / n_chain
-    emiss_between_chain_var[[j]] <- L / (n_chain-1) * ((emiss_mean_data1[[j]] - emiss_grand_mean[[j]])^2 + 
-                                                         (emiss_mean_data2[[j]] - emiss_grand_mean[[j]])^2 # +
-                                                      # (emiss_mean_data3[[j]] - emiss_grand_mean[[j]])^2
-                                                        )
-    emiss_within_chain_var_d1[[j]] <- (1 / (n_chain-1)) * apply(data1$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_within_chain_var_d2[[j]] <- (1 / (n_chain-1)) * apply(data2$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-   # emiss_within_chain_var_d3[[j]] <- (1 / (n_chain-1)) * apply(data3$emiss_mu_bar[[j]][((burn_in + 1) : J),], 2, var)
-    emiss_W[[j]] <- (1/n_chain) * (emiss_within_chain_var_d1[[j]] + emiss_within_chain_var_d2[[j]] # + emiss_within_chain_var_d3[[j]]
-                                   )
-    
-    emiss_GelRub[[j]] <- sqrt(((L - 1)/ L * emiss_W[[j]] + 1/L *  emiss_between_chain_var[[j]] ) / emiss_W[[j]])
-}
-
-# Inspect the Gelman Rubin statistic Rhat over all dependent variables and states 
-emiss_GelRub
-
-# inspect the mean Gelman Rubin statistic Rhat 
-mean(unlist(emiss_GelRub))
-
-# inspect the percentage of Gelman Rubin statistic Rhat above 1.2 
-sum(unlist(emiss_GelRub) > 1.2) / length(unlist(emiss_GelRub))
-
-```
+**Exercise 16**
+The estimate of subject 9's state specific means for each variable is calculated by taking the mean (or median) of all sampled values after the specified burnin period. How does the label switching issue affect the estimates of this subject's state-specific means?
 
 ### PPCs
 
-Finally, we will assess whether the model recovers the data correctly with respect to the mean and standard deviation, to reveal potential model missspecification. First, we need to generate simulated data sets based on obtained parameter estimates. The function `sim_mHMM()` can be used to simulate data using a multilevel hidden Markov model. 
+Finally, we will assess whether the model recovers the data correctly with respect to the mean and standard deviation, to reveal potential model misspecification. It is particularly helpful for group-level model evaluation. First, we need to generate simulated data sets based on obtained parameter estimates. The function `sim_mHMM()` can be used to simulate data using a multilevel hidden Markov model. Note that for each simulated dataset, new subject-specific parameters are simulated, but the group-level parameters remain fixed.
+
+The function takes the following arguments (for more detailed information, use `help(sim_mHMM()`):
+
+* n_t: length of observed sequence for each subject
+* n: sumber of subjects
+* data_distr: string indicating the type of data to simulate. "continuous" in our case.
+* gen: list containing the elemens: m (number of hidden states) and n_dep (number of dependent variables)
+* gamma: group-level transition probability matrix. It should be an unnamed matrix with m rows and m columns.
+* emiss_distr: group-level emission distributions. Specified as a list of matrices, one for each dependent variable. Each matrix should have 2 columns (mean and sd) and m rows (number of states).
+* var_gamma: variance of transition probabilities.
+* var_emiss: variance of emission probabilities.
+
+*Note.* In the data, there is some observed missingness, including the night gap. For now, we simulate data without the night gap and ignore the missingness. Although it will likely make little difference, it may be sensible to insert missing values in places where the data are missing when performing PPCs on your own data.
 
 ---
 
-**Exercise 16**
+**Exercise 17**
 Use the starter script below to simulate 100 datasets based on the model parameters of the 2-state multilevel HMM. 
 
 ```{r, eval = FALSE}
@@ -856,73 +513,51 @@ m <- ...        # specify the number of states
 n_dep <- ...    # specify the number of dependent variables used in mHMM()
 
 # calculate variance in emission distribution
-sapply((out_2st_emotion$emiss_varmu_bar), apply, 2, mean, na.rm = TRUE)
+sapply(out_2st_emotion$emiss_varmu_bar, apply, 2, mean, na.rm = TRUE)
 
 for(i in 1:n_sim){
-  sim_datasets[[i]] <- sim_mHMM(n_t = ... , # specify the number of beeps per subject
-                                n = ...,    # specify the number of subjects  
+  sim_datasets[[i]] <- sim_mHMM(n_t = 240 , # specify the number of beeps per subject
+                                n = 125,    # specify the number of subjects  
                                 data_distr = "continuous",
                                 gen = list(m = m, n_dep = n_dep),
                                 gamma = ... ,   # specify the obtained transition prob matrix 
                                 emiss_distr = ... , # specify the emission distribution, see help file
                                 var_gamma = 0.01,
-                                var_emiss = c(300, 300, 300, 300, 100, 200, 200, 200)
+                                var_emiss = c(300, 300, 200, 200)
   )
 }
-
-
-
 ```
 
-```{r, include = params$answers}
+```{r, include = params$answers, eval = params$answers}
 n_sim <- 100 
 sim_datasets <- vector("list", n_sim)
 
 m <- 2
-n_dep <- 8
+n_dep <- 4
 
 # calculate variance in emission distribution
 sapply((out_2st_emotion$emiss_varmu_bar), apply, 2, mean, na.rm = TRUE)
 
+set.seed(42)
 for(i in 1:n_sim){
   sim_datasets[[i]] <- sim_mHMM(n_t = 240,
                                 n = 125,
                                 data_distr = "continuous",
                                 gen = list(m = m, n_dep = n_dep),
-                                gamma = matrix(c(0.81, 0.19,
-                                                 0.33, 0.67), byrow = TRUE, ncol = m),  
-                                emiss_distr = list(happy = matrix(c(67.54, 15.25,                     
-                                                                    46.77, 22.41), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   excited = matrix(c(48.05, 23.61,                               
-                                                                      30.87, 22.28), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   relaxed = matrix(c(62.26, 21.29,                             
-                                                                      42.71, 24.53), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   satisfied = matrix(c(63.76, 18.71,                             
-                                                                        40.39, 23.28), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   angry = matrix(c(5.84, 5.63,                                   
-                                                                    26.85, 26.50), byrow = TRUE, ncol = 2, nrow = m),
-                                                   anxious = matrix(c(6.04,  5.26,                               
-                                                                      22.34, 25.58), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   depressed = matrix(c(11.55, 9.92,                             
-                                                                        37.07, 26.90), byrow = TRUE, ncol = 2, nrow = m), 
-                                                   sad = matrix(c(7.37, 7.06,                                   
-                                                                  27.75, 25.40), byrow = TRUE, ncol = 2, nrow = m)) , 
+                                gamma = unname(obtain_gamma(out_2st_emotion)),  
+                                emiss_distr = obtain_emiss(out_2st_emotion), 
                                 var_gamma = 0.01,
-                                var_emiss = c(300, 300, 300, 300, 100, 200, 200, 200)
+                                var_emiss = c(300, 300, 200, 200)
   )
 }
-
-
 ```
 
 ---
 
----
+**Exercise 18**
+For each simulated data set, calculate the summary statistics of interest for all four variables (i.e., mean and standard deviation).
 
-**Exercise 17**
-For each simulated data set, calculate the summary statistics of interest (i.e., mean and standard deviation).
-
-```{r, include = params$answers}
+```{r, include = params$answers, eval = params$answers}
 means_simdata <- matrix(, nrow = n_sim, ncol = n_dep)
 for(i in 1:n_sim){
   means_simdata[i,] <- apply(sim_datasets[[i]]$obs[,2:(n_dep + 1)], 2, mean)
@@ -936,14 +571,14 @@ for(i in 1:n_sim){
 
 ---
 
-Now we have simulated datasets and obtained the summary characteristics, we will visually compare the characteristics of the simulated data to that of the observed data. 
+Now that we have simulated datasets and obtained the summary characteristics, we will visually compare the characteristics of the simulated data to that of the observed data. 
 
 ---
 
-**Exercise 18**
+**Exercise 19**
 Plot the summary characteristics (mean and sd) of the simulated datasets in histograms, and add a vertical line for the mean and sd in the observed data to aid the comparison. 
 
-```{r, include = params$answers}
+```{r, include = params$answers, eval = params$answers}
 vars <- names(obtain_emiss(out_2st_emotion))
 
 par(mfrow = c(2,4))
@@ -952,7 +587,7 @@ for(i in 1:n_dep){
        main = vars[i], 
        xlab = paste("Mean", vars[i]) 
   )
-  abline(col = "red", lwd = 2, v = mean(emotion_data[,4+i], na.rm = TRUE))
+  abline(col = "red", lwd = 2, v = mean(emotion_mHMM[,1+i], na.rm = TRUE))
 }
 
 # plot histogram sd simulated data and observed in real data
@@ -963,17 +598,68 @@ for(i in 1:n_dep){
        xlab = paste("SD", vars[i]), 
        xlim = c(20,30)
   )
-  abline(col = "red", lwd = 2, v = sqrt(var(emotion_data[,4+i], na.rm = TRUE)))
+  abline(col = "red", lwd = 2, v = sqrt(var(emotion_mHMM[,1+i], na.rm = TRUE)))
 }
 
-# The means show no evidence of model fit, however the standard deviations of the simulated datasets are higher compared to the observed data. It would be interesting to see whether a 3-state model would partly solve this. 
+# The means show no evidence of bad model fit, however the standard deviations of the simulated datasets are higher compared to the observed data, especially for happy and relaxed. It would be interesting to see whether a 3-state model would partly solve this. 
 
 ```
 
 ---
 
+### Pseudoresiduals
+Where PPCs are most useful for group-level model evaluation, pseudoresiduals are most useful for model evaluation at the subject level. These are residuals that are obtained based on the most likely state sequence for each person (hence the suffix `pseudo`), using the Viterbi algorithm (see previous practical).
 
+We can compute the Root-Mean-Squared-Error (RMSE) of the pseudoresiduals, which is a measure of how well the model fits the data, where a lower RMSE indicates a better fit. This is especially useful to compare models.
 
+We have provided you with two helper functions for this. `GetResid()` can be used to obtain residuals for a specific person for a specific variable. The function takes the following arguments:
 
+* data: the dataset used to build the model
+* model: the fitted model
+* j: integer specifying the variable to obtain residuals for
+* i: the desired subject
 
+It outputs a list with 4 elements:
+
+* emp: the data of subject i for variable j
+* model: the predicted values for subject i for variable j
+* resid: the pseudoresiduals for subject i for variable j
+* RMSE: the RMSE for subject i for variable j
+
+**Exercise 20**
+
+**A.** Use `GetResid()` to obtain pseudoresiduals for subject 1 for all variables. Do this for both the 2-state and 3-state model. Hint: use the function `lapply()` to loop over the variables.
+```{r, include = params$answers}
+pseudoresid_2st <- lapply(1:4, # for variable 1 to 4
+                          function(j) GetResid(data = emotion_mHMM, model = out_2st_emotion, j = j, i = 1))
+pseudoresid_3st <- lapply(1:4, # for variable 1 to 4
+                          function(j) GetResid(data = emotion_mHMM, model = out_3st_emotion, j = j, i = 1))
+```
+
+**B.** Obtain the RMSE for the pseudoresiduals of subject 1 for all variables, and compare the RMSE of the 2-state and 3-state model. Which model fits better for this person? 
+```{r, include = params$answers}
+RMSE_2st <- sapply(pseudoresid_2st, function(x) x$RMSE)
+RMSE_3st <- sapply(pseudoresid_3st, function(x) x$RMSE)
+print(RMSE_2st)
+print(RMSE_3st)
+## The 3-state model has slightly better fit for subject 1 as it has the lowest RMSE for all variables.
+```
+
+After obtaining the pseudoresiduals, we can also plot them separately for each person and each variable to assess:
+1. Whether the pseudoresiduals are (roughly) normally.
+2. Whether there is a trend over time.
+2. Whether there is any remaining dependency between residuals over time (can also be assessed using the autocorrelation).
+3. Whether there are any outliers.
+4. Whether variance is (roughly) stable over time.
+
+We have provided you with a helper function, `PlotResid()`, to plot the pseudoresiduals. It takes an object returned by `GetResid()` as input.
+
+**Exercise 21**
+Use `PlotRes()` to plot the pseudoresiduals for subject 1 for the variable `happy` (i.e. the first variable), for the 3-state model. How do you evaluate the model fit for this person?
+
+```{r, include = params$answers}
+resid <- pseudoresid_3st[[1]]
+## resid <- GetResid(emotion_mHMM, out_3st_emotion, j = 1, i = 1)
+PlotRes(pseudoresid_3st[[1]])
+```
 
