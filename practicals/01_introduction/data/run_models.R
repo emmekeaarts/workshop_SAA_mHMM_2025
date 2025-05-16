@@ -100,7 +100,7 @@ saveRDS(out_3st_emotion, file = "practicals/02_more_advanced/data/out_3st_emotio
 
 ## general model properties
 m <- 4
-
+n_dep <- 4
 ## starting values for gamma
 start_gamma_4st <- matrix(c(0.7, 0.1, 0.1, 0.1,
                             0.1, 0.7, 0.1, 0.1,
@@ -117,7 +117,7 @@ start_emiss_4st <- list(matrix(c(80, 10,                                     # h
                                  40, 10,
                                  20, 10), byrow = TRUE, ncol = 2, nrow = m), 
                         matrix(c(10,  5,                                     # anxious
-                                 320, 10,
+                                 32, 10,
                                  40, 10,
                                  60, 10), byrow = TRUE, ncol = 2, nrow = m), 
                         matrix(c(10,  5,                                     # depressed
@@ -136,7 +136,7 @@ emotion_prior_emiss_4st <- prior_emiss_cont(
   emiss_V = rep(list(rep(5^2, m)), n_dep),
   emiss_nu = rep(list(1), n_dep),
   emiss_a0 = rep(list(rep(1.5, m)), n_dep),
-  emiss_b0 = rep(list(rep(20, m)), n_dep),
+  emiss_b0 = rep(list(rep(20, m)), n_dep)
 )
 
 # Fitting the 4 state model 
