@@ -1,8 +1,8 @@
 ---
 title: "More advanced matters:"
-subtitle: "Subject specific parameters, covariates, and model selection and fit"
-author: "Dr. Emmeke Aarts [e.aarts@uu.nl] <br> Pre-conference workshop for the International Conference on Multilevel Analysis "
-date: "March 11, 2024"
+subtitle: "Multilevel framework & individual dynamics, model selection & fit"
+author: "Emmeke Aarts, Jonas Haslbeck, Pepijn Vink <br> <br>Post-conference workshop for the SAA 2025, Leuven "
+date: "May 29, 2025"
 output: 
   ioslides_presentation:
     css: style.css
@@ -19,12 +19,7 @@ library(ggplot2)
 
 ## So far.. 
 
-Introduction to the multilevel HMM 
-
-Two examples: 
-
-- Continuous outcomes: CAB crisis states
-- Categorical outcomes: nonverbal states in patient-therapist dyads 
+Introduction to the HMM using the example of CAB crisis states
 
 Here, we investigated 
 
@@ -32,7 +27,153 @@ Here, we investigated
 - State dynamics at the group level
 - Most likely state sequence over time
 
-Same topics in the practical, using data on mood (continuous data). 
+Same topics in the practical, using data on mood. 
+
+
+## Now:
+
+Expand the HMM to the multilevel framework 
+
+- Enabling individual specific parameters
+- Using the example of CAB crisis states
+
+And 
+
+- Model selection problem
+- Model fit
+- Using the example of CAB crisis states
+
+
+---
+
+<div align="center">
+<br>
+<br>
+<br>
+<font size="10"> **Multilevel framework **</font>
+<br>
+<br>
+<br>
+<br>
+<font size="6"> Individual specific models of dynamics </font>
+</div>
+
+## Conventional HMM: desinged for single sequence
+<div style = "float: left; width: 55%;">
+Analyzing data from multiple individuals
+
+<font size="5"> 
+
+- A: strong assumption: individuals do not differ with respect to process dynamics
+- A: explain some of the differences using covariates (e.g., R package depmixS4)
+- B: composition of states not related over individuals, inefficient use of data 
+- A, B, and C do not allow for:  
+    - (quantification of) natural variation between individuals
+    - individual specific dynamics over time
+
+</font>
+</div>
+
+<div style = "float: right; width: 45%;">
+<div align="left">
+<img src="./figures/Fig_Illustration_Heter_EA.png" width=480><br>
+</div>
+</div>
+
+
+
+## Extending the HMM to a multilevel framework
+Including a multilevel framework for the HMM, enables simultaneous estimation:
+
+- group level parameter estimates 
+- individual specific parameter estimates for each individual $n$ 
+
+For the variable & state dependent emission Normal means:
+
+- $\quad {\mu_{nki} = \bar{\mu}_{ki} + \epsilon_{\left[\mu\right]nki}}$
+
+For the state dynamics: 
+
+- Multinomial logistic regression to estimate transition probabilities $\gamma_{nij}$ 
+
+- $\gamma_{nij} = \frac{\text{exp}(\alpha_{nij})}{1 + \sum_{{j} = 2}^m \text{exp}(\alpha_{ni{j}})} \quad$ where $\quad \alpha_{nij} = \bar{\alpha}_{ij} + \epsilon_{\left[\alpha\right]nij}$
+
+
+
+## Extending the HMM to a multilevel framework
+
+Adopt a Bayesian approach
+
+Individual specific means / intercepts are sampled from a Normal distribution 
+
+Combining: 
+
+- The prior distribution:  
+    - Group level distribution denoting overall mean of parameter over individuals, and 
+    - Variability in the parameter between individuals
+- The 'observed data':  
+    - The observed data within a state
+
+## The mHMMbayes package: an example
+
+<div align="center">
+<br>
+<img src="./figures/CAB data.png" width=950>
+</div>
+
+26 patients, 60 observations per patient per CAB factor
+
+## Individual level - emission distribution 
+
+```{r, echo = TRUE, eval = FALSE}
+emiss_subj <- obtain_emiss(CAB_mHMM_4st, level = "individual")
+```
+
+<div align="center">
+<br>
+<br>
+<img src="./figures/Emissions - group and patient.png" width=850>
+</div>
+
+## Individual level - emission distribution 
+
+```{r, echo = TRUE, eval = FALSE}
+emiss_subj <- obtain_emiss(CAB_mHMM_4st, level = "individual")
+```
+
+Important to check conceptual state equivalence over individuals! 
+
+<div align="center">
+<img src="./figures/state_comp_patient2.png" width=850>
+</div>
+
+## CAB crisis state dynamics 
+
+<div align="center">
+<br>
+<img src="./figures/CAB state dynamics network V3 - group only.png" width=500>
+</div>
+
+## Individual level - state dynamics 
+```{r, echo = TRUE, eval = FALSE}
+gamma_subj <- obtain_gamma(CAB_mHMM_4st, level = "individual")
+```
+
+<div align="center">
+<br>
+<img src="./figures/CAB state dynamics network V3 - patients only.png" width=950>
+</div>
+
+
+## Capturing crisis dynamics -- conclusion 
+
+Pairing fine grained ESM data with multilevel HMM, we
+
+- Identified four distinct and ascending CAB based crisis states
+- Quantified the dynamics of crisis at the group level 
+- Visualized crisis states over time at the patient individual level
+- Observed considerable variation between patients, both in remaining within and transitioning between CAB crisis states
+- Highlighted the need for a personalized method 
 
 ---
 
@@ -70,9 +211,9 @@ Note: within Bayesian framework, can make the number of states a model parameter
 
 Pohle & Langrock (2017) suggested a pragmatic step-by-step approach: 
 
-- Decide a priori the min and max number of states that seem plausible.
-- Fit the decided on models.
-- Inspect the state composition of the fitted models.
+- Decide a priori plausible min and max number of states.
+- Fit decided on models.
+- Inspect state composition of fitted models.
 - Use model checking to include / exclude models.  
     - In case of Bayesian framework: model convergence!
 - Consider model selection criteria for guidance.
@@ -116,13 +257,13 @@ Pohle & Langrock (2017) suggested a pragmatic step-by-step approach:
 | Mean Rhat (\% $>$ 1.2)   | 2-state model| 3-state model| 4-state model| 5-state model|
 | :----------------------: | :----------: | :----------: | :----------: |:-----------: |
 |                          |              |              |              |
-| Transition parameters    | 1.04 (0.0\%) |	1.02 (0.0\%) | 1.01 (0.0\%) |	1.01 (0.0\%) |
-| Composition parameters   | 1.04 (0.0\%) | 1.04 (0.1\%) | 1.01 (0.0\%) | 1.03 (0.0\%) |
+| Transition parameters    | 1.02 (0.0\%) |	1.01 (0.0\%) | 1.02 (6.25\%) |	1.04 (16.0\%) |
+| Composition parameters   | 1.01 (0.0\%) | 1.01 (0.0\%) | 1.03 (0.0\%) | 1.04 (4.0\%) |
 
 
 ## Model selection: model selection criteria
 ```{r, fig.align='center', fig.width=8, fig.height=4}
-AIC <- data.frame(AIC = c(2663.50, 2632.81, 2621.72, 2633.38), 
+AIC <- data.frame(AIC = c(2664.32, 2630.36, 2616.45, 2623.73), 
                   states = c(2:5))
 ggplot(AIC, mapping = aes(x = states, y = AIC)) +
   geom_point() + 
@@ -132,133 +273,8 @@ ggplot(AIC, mapping = aes(x = states, y = AIC)) +
   theme_minimal()
 ```
 
----
 
-<div align="center">
-<br>
-<br>
-<br>
-<font size="10"> **Subject specific parameters**</font>
-<br>
-<br>
-<br>
-<br>
-<font size="6"> Emission distribution and transition probability parameters </font>
-</div>
 
-## Subject level parameters 
-
-Subject specific parameters (means / intercepts) are sampled from a Normal distribution, combining: 
-
-- The prior distribution: the group level distribution denoting the overall mean of the parameter over subjects, and the variability in the parameter between subjects
-- The 'observed data': the observed data within a state
-
-## Subject level parameters - emission distribution 
-
-```{r, echo = TRUE, eval = FALSE}
-emiss_subj <- obtain_emiss(CAB_mHMM_4st, level = "subject")
-```
-
-<div align="center">
-<br>
-<br>
-<img src="./figures/Emissions - group and patient.png" width=850>
-</div>
-
-## Subject level parameters - emission distribution 
-
-Important to check conceptual state equivalence over subjects! 
-
-<div align="center">
-<br>
-<img src="./figures/state_comp_patient2.png" width=850>
-</div>
-
-## Subject level parameters - transition probabilities 
-```{r, echo = TRUE, eval = FALSE}
-gamma_subj <- obtain_gamma(CAB_mHMM_4st, level = "subject")
-```
-
-<div align="center">
-<img src="./figures/state_trans_patient_reduced.png" width=750>
-</div>
-
----
-
-<div align="center">
-<br>
-<br>
-<br>
-<font size="10"> **Explaining heterogeneity**</font>
-<br>
-<br>
-<br>
-<br>
-<font size="6">  Including covariate(s) </font>
-</div>
-
-## Interaction in patient-therapist dyads
-
-39 patient-therapist dyads
-
-15 min annotated video recordings of therapy session
-
-<div align="center">
-<img src="./figures/example interaction data.png" width=730>
-</div>
-
-## Three nonverbal communication states
-
-<div align="center">
-<img src="./figures/State composition V2.png" width=650>
-</div>
-
-## Dynamics in nonverbal communication 
-
-<div align="center">
-<br>
-<img src="./figures/State dynamics.png" width=450>
-</div>
-
-## Heterogeneity in state dynamics 
-
-<div align="center">
-<img src="./figures/dyad_state_trans_patient_reduced.png" width=550>
-</div>
-
-## Explaining heterogeneity - including covariate(s)
-```{r, echo = TRUE, eval = FALSE}
-out_3st_cov <- mHMM(s_data = MHMM_nonverbal,
-                    data_distr = "categorical",
-                    gen = list(m = m, n_dep = n_dep, q_emiss = q_emiss),
-                    xx = depression_improvement,        # optional list of level 2 covariates
-                    start_val = c(list(start_TM), start_EMc),
-                    mcmc = list(J = J, burn_in = burn_in))
-```
-<div align="center">
-<img src="./figures/Predicted and observed transition probabilities.png" width=750>
-</div>
-
-## Predicted nonverbal state dynamics
-
-<div align="center">
-<br>
-<img src="./figures/predicted state dynamics new - reduced.png" width=900>
-</div>
-
-## Predicted nonverbal state dynamics
-
-<div align="center">
-<br>
-<img src="./figures/predicted state dynamics new.png" width=900>
-</div>
-
-## Nonverbal communication state sequences
-
-<div align="center">
-<br>
-<img src="./figures/predicted states new.png" width=950>
-</div>
 
 ---
 
@@ -271,30 +287,33 @@ out_3st_cov <- mHMM(s_data = MHMM_nonverbal,
 <br>
 <br>
 <br>
-<font size="6"> Convergence, PPCs and pseudo residuals </font>
+<font size="6"> Label switching, Convergence, PPCs and pseudo residuals </font>
 </div>
 
+## Model checking: convergence
+
+Check: rule out results from a local (instead of global) maximum. 
+
+How to check convergence: 
+
+ 1) Fit the multilevel HMM multiple times, using different starting values 
+
+$\rightarrow$ multiple MCMC chains. 
+
+- Keep same sensible ordering of $\bar{\mu}_i$ or $\bar{\lambda}_i$ given data and process. 
+- Values of weakly informative prior distributions should be fixed over the chains.
 
 
 ## Model checking: convergence
-
-Convergence needs to be assessed in order to rule out output resulting from a local (instead of global) maximum. 
-
-Fit the multilevel HMM multiple times, using different starting values $\rightarrow$ multiple MCMC chains. 
-
-- Keep the same sensible ordering of $\bar{\mu}_i$ or $\bar{\lambda}_i$ given data and process. 
-- Values of the weakly informative prior distributions should be fixed over the chains.
-
-
-## Model checking: convergence
-
-Next, inspect the chains for evidence of non-convergence:
+<ol start=2>
+<li> Inspect the chains for evidence of non-convergence:
+</ol>
 
 - Visually:   
-    - Trace plots, visualizing the parameter estimates over the iterations of the MCMC sampler. The chains should not show any trend and good mixing. 
-    - Density plots, visualizing the posterior distribution. Should be unimodal. 
-- Numerically with the potential scale reduction factor $\hat{R}$:  
-    - Tests for equality of means of the different chains - the degree to which variance (of the means) between chains exceeds what one would expect if the chains were identically distributed.
+    - Trace plots $\rightarrow$ parameter estimates over iterations of the MCMC sampler. Chains should not show any trend and good mixing. 
+    - Density plots $\rightarrow$ posterior distribution. Should be unimodal. 
+- Numerically with potential scale reduction factor $\hat{R}$:  
+    - Tests for equality of means of the different chains 
     - A value of R-hat below 1.2 is used to indicate convergence. 
 
 
@@ -306,15 +325,39 @@ Next, inspect the chains for evidence of non-convergence:
 
 ## Model checking: convergence - example
 
-| Mean Rhat (\% $>$ 1.2)   | 3-state model| 
+| Mean Rhat (\% $>$ 1.2)   | 4-state model| 
 | :----------------------: | :----------: | 
 |                          |              | 
-| Transition parameters    | 1.02 (0.0\%) | 
-| Composition parameters   | 1.04 (0.1\%) | 
+| Transition parameters    | 1.02 (6.25\%) | 
+| Composition parameters   | 1.03 (0.0\%) | 
+
+## Model checking: label switching
+In mixture models, such as HMMs, the orderning of the hidden states do not affect the fit (i.e., likelihood) of the model.
+
+Consequence in Bayesian estimation: the ordening of the states (e.g., state 1: good mood, state 2: bad mood) may switch over the iterations of the estimation procedure
+
+In multilevel HMMs: occurs at the level of the individual estimates. Severe label switching may also affect the group level estimates. 
+
+How to check: traceplots of the parameters at the individual level 
+
+## Model checking: label switching
+
+<div align="center">
+<img src="./figures/Label switching example.png" width=550>
+</div>
+
+## Model checking: label switching
+
+Occurrence depends on state separation, number of dependent observations in the model, and sample size: 
+
+<div align="center">
+<img src="./figures/XX.png" width=650>
+</div>
+
 
 ## Model checking: Posterior predictive checks 
 
-Assess whether the model recovers the data correctly on an array of characteristics and aids in revealing model missspecification.
+Check: does model recover the data correctly on an array of characteristics, aids in revealing model missspecification.
 
 1. Fit a MHMM to the data.
 2. Generate simulated data sets based on obtained parameter estimates.
@@ -329,29 +372,91 @@ PPCs can be used to assess model fit at both the individual and group-level.
 ## Model checking: PPCs - example
 
 <div align="center">
-<img src="./figures/PPC_mean.png" width=700>
+<br>
+<img src="./figures/PPC mean V2.png" width=700>
 </div>
 
 ## Model checking: PPCs - example
 
 <div align="center">
-<img src="./figures/PPC_SD.png" width=700>
+<br>
+<img src="./figures/PPC SD V2.png" width=700>
 </div>
 
 
 ## Model checking: Pseudo residuals 
 
-Using the 
+Check: is the model a good fit to the data of each individual?
 
-- sequence of most likely states for each subject
-- subject specific parameter estimates for the emission distribution 
+- Using the  
+    - sequence of most likely states for each individual
+    - individual specific parameter estimates for the emission distribution 
+- we predict the most likely outcome at each point in time.  
+    - E.g., when modelling continuous data $\rightarrow$ individual and state specific mean of most likely state at each point in time. 
 
-we can predict the most likely outcome at each point in time. E.g., when modelling continuous data, the subject and state specific mean for the state most likely at each time point. 
+Pseudo residuals at each time point: observed - predicted outcome. 
 
-Hence, we can also obtain (pseudo) residuals at each time point: observed - predicted outcome. 
+Use for typical residual checking: e.g., normality, heteroscedasticity, lack of trend over time, and autocorrelation. 
 
-On these pseudo residuals, we can do the usual residual checking: e.g., normality, heteroscedasticity, lack of trend over time, and autocorrelation. Most informative at the subject level: does the model fit each subject specifically? 
+## Model checking: Pseudo residuals - example
+
+<div align="center">
+<br>
+<br>
+<img src="./figures/Pseudo residuals over time.png" width=950>
+</div>
+
+## Model checking: Pseudo residuals - example
+
+<div align="center">
+<br>
+<br>
+<img src="./figures/Pseudo residuals density.png" width=950>
+</div>
+
+
+## Model checking: Pseudo residuals - example
+
+<div align="center">
+<br>
+<br>
+<img src="./figures/ACF self control.png" width=950>
+</div>
+
+
+
+## Start practical 2
+
+<div>
+<br>
+<br>
+<br>
+</div>
+
+Let's continue with our own multilevel HMM in the lab! 
+
+
+<div>
+<br>
+<br>
+<br>
+All materials are available on:
+
+https://github.com/emmekeaarts/workshop_SAA_mHMM_2025
+</div>
 
 ## References 
 
 - <font size="3"> Pohle, J., Langrock, R., Van Beest, F. M., & Schmidt, N. M. (2017). Selecting the number of states in hidden Markov models: pragmatic solutions illustrated using animal movement. Journal of Agricultural, Biological and Environmental Statistics, 22, 270-293. DOI: 10.1007/s13253-017-0283-8 </font>
+
+## mHMMbayes - Metropolis within Gibbs sampler
+
+1. Obtain forward probabilities $\alpha_{t(ni)} = Pr\big(O_1 = o_1, ..., O_t = o_t, S_t = i\big)$ for each subject using current values of subject specific model parameters.
+2. Sample hidden state sequences in backward manner using $\alpha_{t(ni)}$ and $\gamma_{nij}$.
+3. Given current subject-specific parameters, draw new group-level parameter estimates using Gibbs step
+4. Given 
+    - observed event sequence for each subject
+    - sampled hidden state sequence for each subject
+    - group-level parameter distributions
+    - draw new subject-specific parameters using RW Metropolis sampler
+5. Repeat step 1-4 a very large number of times
