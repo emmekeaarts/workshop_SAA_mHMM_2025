@@ -334,11 +334,17 @@ $\rightarrow$ multiple MCMC chains.
 ## Model checking: label switching
 In mixture models, such as HMMs, the orderning of the hidden states do not affect the fit (i.e., likelihood) of the model.
 
-Consequence in Bayesian estimation: the ordening of the states (e.g., state 1: good mood, state 2: bad mood) may switch over the iterations of the estimation procedure
+Consequence: 
 
-In multilevel HMMs: occurs at the level of the individual estimates. Severe label switching may also affect the group level estimates. 
+- In Bayesian estimation, the ordering of the states (e.g., state 1: good mood, state 2: bad mood) may switch over the iterations of the estimation procedure
 
-How to check: traceplots of the parameters at the individual level 
+In multilevel HMMs: 
+
+- Occurs at the level of the individual estimates. Severe label switching may also affect the group level estimates. 
+
+How to check: 
+
+- traceplots of the parameters at the individual level 
 
 ## Model checking: label switching
 
@@ -347,13 +353,53 @@ How to check: traceplots of the parameters at the individual level
 </div>
 
 ## Model checking: label switching
+<div style = "float: left; width: 40%;">
+<br>
+<br>
+Occurrence depends on:
 
-Occurrence depends on state separation, number of dependent observations in the model, and sample size: 
-
-<div align="center">
-<img src="./figures/XX.png" width=650>
+- Amount of state separation, 
+- Number of variables $p$, 
+- Sample size ($N_{Ind}$ and $N_t$). 
 </div>
 
+<div style = "float: right; width: 60%;">
+<div align="center">
+<br>
+<img src="./figures/Label Switching p = 2.png" width=600>
+</div>
+</div>
+
+## Model checking: label switching
+
+<div style = "float: left; width: 40%;">
+<br>
+<br>
+Occurrence depends on:
+
+> - Amount of state separation, 
+> - Number of variables $p$, 
+> - Sample size ($N_{Ind}$ and $N_t$). 
+</div>
+</div>
+
+<div style = "float: right; width: 60%;">
+<div align="center">
+<br>
+<img src="./figures/Label Switching p = 8.png" width=600>
+</div>
+</div>
+
+## Model checking: label switching
+
+Severe label switching: 
+
+  - model is not viable. 
+
+Minor label switching:  
+
+  - manually switch back labels of switched parts or 
+  - do not interpret results for individuals with label switching. 
 
 ## Model checking: Posterior predictive checks 
 
