@@ -188,77 +188,20 @@ Given example data, assume
 - Normal emission distribution: $P(y_{kt} | S_t) \sim N(\mu_{ki}, \sigma_{ki}^2)$
 - $y_{k.}$ are conditionally independent given $\{S_t : t = 1, 2, ..., T\}$ to accommodate multivariate data
 
-## Conventional HMM: desinged for single sequence
-<div style = "float: left; width: 55%;">
-Analyzing data from multiple individuals
-
-<font size="5"> 
-
-- A: strong assumption: individuals do not differ with respect to process dynamics
-- A: explain some of the differences using covariates (e.g., R package depmixS4)
-- B: composition of states not related over individuals, inefficient use of data 
-- A, B, and C do not allow for:  
-    - (quantification of) natural variation between individuals
-    - individual specific dynamics over time
-
-</font>
-</div>
-
-<div style = "float: right; width: 45%;">
-<div align="left">
-<img src="./figures/Fig_Illustration_Heter_EA.png" width=480><br>
-</div>
-</div>
-
-
-
-## Extending the HMM to a multilevel framework
-Including a multilevel framework for the HMM, enables simultaneous estimation:
-
-- group level parameter estimates 
-- subject specific parameter estimates for each subject $n$ 
-
-Multinomial logistic regression to estimate transition probabilities $\gamma_{nij}$ 
-
-$\gamma_{nij} = \frac{\text{exp}(\alpha_{nij})}{1 + \sum_{{j} = 2}^m \text{exp}(\alpha_{ni{j}})} \quad$ where $\quad \alpha_{nij} = \bar{\alpha}_{ij} + \epsilon_{\left[\alpha\right]nij}$
-
-In addition, for the variable & state dependent emission Normal means:
-
-$\quad {\mu_{nki} = \bar{\mu}_{ki} + \epsilon_{\left[\mu\right]nki}}$
-
-Adopt a Bayesian approach
-
 
 
 ## Four CAB based crisis states
 <div align="center">
 <br>
 <br>
-<img src="./figures/Emissions - group and patient NEW.png" width=850>
+<img src="./figures/CAB composition - group only.png" width=850>
 </div>
 
 ## CAB crisis state dynamics 
 
 <div align="center">
-<img src="./figures/CAB state dynamics network V2 - group only.png" width=950>
-</div>
-
-## CAB crisis state dynamics 
-
-<div align="center">
-<img src="./figures/CAB state dynamics network V2 - 1 patient.png" width=950>
-</div>
-
-## CAB crisis state dynamics 
-
-<div align="center">
-<img src="./figures/CAB state dynamics network V2 - 2 patients.png" width=950>
-</div>
-
-## CAB crisis state dynamics 
-
-<div align="center">
-<img src="./figures/CAB state dynamics network V2 - full.png" width=950>
+<br>
+<img src="./figures/CAB state dynamics network V3 - group only.png" width=500>
 </div>
 
 ## Personalized crisis trajectories 
@@ -273,9 +216,8 @@ Adopt a Bayesian approach
 Pairing fine grained ESM data with multilevel HMM, we
 
 - Identified four distinct and ascending CAB based crisis states
-- Quantified and visualized the pattern of crisis at the group and patient individual level
-- Observed considerable variation between patients, both in remaining within and transitioning between CAB crisis states
-- Highlighted the need for a personalized method 
+- Quantified the dynamics of crisis at the group level 
+- Visualized crisis states over time at the patient individual level
 
 
 
@@ -444,7 +386,7 @@ Starting values for the (Gaussian) emission distribution
 - what are likely observations for each of the states (e.g., for a low and high crisis state)?
 - means and SDs need to be specified such that all observations within a variable receive reasonable support. 
 - take negative correlations between variables into account!  
-    - E.g., high self-control likely goes together with low suicidal ideation and vice versa. 
+    - E.g., high self-control likely goes together with low suicidal ideation.
 - list with one matrix per dependent variable, with 2 columns -- mean and SD -- and `m` rows. 
 
 ## Fitting a multilevel HMM -- starting values  
@@ -505,7 +447,7 @@ Specifying parameter values for the prior on the emission distribution is mandat
 - what is a likley amount of variation between individuals in the state means? 
 - means and variances need to be specified such that all observations within a variable receive reasonable support. 
 - take negative correlations between variables into account!  
-    - E.g., high self-control likely goes together with low suicidal ideation and vice versa.
+    - E.g., high self-control likely goes together with low suicidal ideation.
 - can re-use some of the values specified in the starting values! 
 
 ## Fitting a multilevel HMM -- emission prior
@@ -622,6 +564,15 @@ summary(out_4st)
 
 Let's try to run our own multilevel HMM in the lab! 
 
+
+<div>
+<br>
+<br>
+<br>
+All materials are available on:
+
+https://github.com/emmekeaarts/workshop_SAA_mHMM_2025
+</div>
 
 ## References 
 
