@@ -16,25 +16,30 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+# Install packages, if necessary
+if(!requireNamespace("mHMMbayes", quietly = TRUE)) install.packages("mHMMbayes")
+if(!requireNamespace("ggmHMM", quietly = TRUE)) devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
+
+# Load packages
 library(mHMMbayes)
-devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
 library(ggmHMM)
+
+# Load Data
 emotion_data <- readRDS("./data/data_Rowland2020.rds")
 emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')]
 ```
 
-This is the first practical, where we introduce the dataset and we use it to fit a (2 state) multilevel hidden Markov model. 
+This is the first practical, where we introduce the dataset and we use it to fit a (2 state) multilevel hidden Markov model. In the more advanced second practical, we will focus on selecting the number of states (which we for now assume to be equal to 2) and perform various forms of model checking.
 
-You can use your preferred way of working in R to do the practicals. Our preferred way is this:
+We recommend the following way to do the practical in R:
 
-* Create a new folder with a good name, e.g., `practicals_mHMM` 
+* Create a new folder, e.g., `practicals_mHMM` 
 * Open RStudio
 * Create a new project from RStudio, which you associate with the folder
 * Create a `raw_data` subfolder
 * Create an R script for the current practical, e.g., `introduction.R`
-* Create your well-documented and [well-styled](https://style.tidyverse.org/) code in this R script
 
-The answers to the practicals are available in the `*_answers.html` files. Try to work out the answer yourself (e.g., inspecting help files and examples in them provided in the `mHMMbayes` package, looking at the tutorial vignette available online) before looking at this!
+The answers to the practicals are available in the `*_answers.html` files.
 
 In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.1.0. You can load the package like 
 
@@ -44,7 +49,8 @@ library(mHMMbayes)
 
 
 ## The data
-We will use an open access dataset from Rowland and Wenzel (2020), available on OSF [`here`](https://osf.io/jmz2n/). The data consists of one-hundred twenty-five undergraduate students from the University of Mainz in Germany that completed a 40-day ambulatory assessment six times a day, reporting on their affective experiences *happy*, *excited*, *relaxed*, *satisfied*, *angry*, *anxious*, *depressed*, and *sad*. For this exercise we will only use a subset of the variables, namely *happy*, *relaxed*, *anxious*, and *depressed*. These items were scored with a visual analog slider from 0 to 100. Before the collection of the ESM measurements, participants of the study were randomly assigned to a group receiving a weekly mindfulness treatment during the ESM study and a control group. A cleaned version of the data kindly provided in the data archive as part of Haslbeck, Ryan, & Dablander (2023), the repository can be found [`here`](https://github.com/jmbh/EmotionTimeSeries), and the specific dataset we will be working with [`here`](https://github.com/jmbh/EmotionTimeSeries/tree/master/DataClean/Rowland2020). It is an `rds` file, which is a convenient, portable, and fast binary file format for R.
+
+We will use an open access dataset from Rowland and Wenzel (2020), available on OSF [`here`](https://osf.io/jmz2n/). The data consists of one-hundred twenty-five undergraduate students from the University of Mainz in Germany that completed a 40-day ambulatory assessment six times a day, reporting on their affective experiences *happy*, *excited*, *relaxed*, *satisfied*, *angry*, *anxious*, *depressed*, and *sad*. For this exercise we will only use a subset of the variables, namely *happy*, *relaxed*, *anxious*, and *depressed*. These items were scored with a visual analog slider from 0 to 100. Before the collection of the ESM measurements, participants of the study were randomly assigned to a group receiving a weekly mindfulness treatment during the ESM study and a control group. Here we use an already cleaned version of these data from the reproducibility archive of [Haslbeck, Ryan, & Dablander (2023)](https://psyarxiv.com/qudr6), the repository can be found [`here`](https://github.com/jmbh/EmotionTimeSeries), and the specific dataset we will be working with [`here`](https://github.com/jmbh/EmotionTimeSeries/tree/master/DataClean/Rowland2020). However, you do not have to download anything, we provide their cleaned dataset as an `.rds` below.
 
 ---
 
@@ -132,9 +138,9 @@ ggplot(ggplot_emotion, aes(x = outcome)) +
 
 ## Missing data handling and the night gap
 
-Like most EMA studies, the current dataset contains missing measurement points. We can distinguish two broad reasons for this. The first are unknown reasons during the day that prevent subjects from responding to the survey. To account for the missingness of measurement points in the multilevel HMM analysis, the missingness must be represented as rows of (missing) NA-values in the data matrix. Otherwise, the package assumes that all measurements are consecutive with an equidistant time between them (six measurements within 10h, so 1h 40 min in our case). The *mHMMbayes* package assumes the data are missing at random. This means that the missingness is equally likely in each of the hidden states.
+Like most EMA studies, the our dataset contains missing measurement points for two reasons: The first are unknown reasons during the day that prevent subjects from responding to the survey. To account for the missingness of measurement points in the multilevel HMM analysis, the missingness must be represented as rows of (missing) NA-values in the data matrix. Otherwise, the package assumes that all measurements are consecutive with an equidistant time between them (six measurements within 10h, so 1h 40 min in our case). The *mHMMbayes* package assumes the data are missing at random. This means that the missingness is equally likely in each of the hidden states.
 
-A second reason for missingness is the fact that subjects do not respond during the night when they are asleep. These missed timepoints are not yet represented in our data. If we left the data as they are, the model would assume that the last measurement in the evening of the day and the first measurement in the morning of the next day are 1 hour and 40 minutes apart, which is clearly incorrect. Instead, we insert a number of NA-values for each night gap for the missed measurements. This assumes that the process during the day continues at night. Since the night gap with no measurements taken was 14h, and the average interval between daytime measurements was 1h 40min, we insert eight missing time steps to represent the night-gap (since the beginning and end of the 14 hours are respectfully the last and first measurement of the day).
+The second reason for missingness is the fact that subjects do not respond during the night when they are asleep. These missed timepoints are not yet represented in our data. If we left the data as they are, the model would assume that the last measurement in the evening of the day and the first measurement in the morning of the next day are 1 hour and 40 minutes apart, which is clearly incorrect. Instead, we insert a number of NA-values for each night gap for the missed measurements. This assumes that the process during the day continues at night. Since the night gap with no measurements taken was 14h, and the average interval between daytime measurements was 1h 40min, we insert eight missing time steps to represent the night-gap (since the beginning and end of the 14 hours are respectfully the last and first measurement of the day).
 
 **Exercise 4**
 
@@ -150,7 +156,9 @@ emotion_nightgap <- insert_nightgap(data = emotion_data, # make sure the first c
 
 ## Setting up the multilevel hidden Markov model 
 
-In this section, you will fit a 2-state multilevel hidden Markov model. For this, you need a `data.frame` in which only the affective variables you want to use in the model are included, plus the subject ID as the first column.  Please feel free to only use a subset of the provided affective variables, but do make sure to select at least 2 affective variables. 
+In this section, you will fit a 2-state multilevel hidden Markov model. Note that in an actual analysis we will have to do model selection between models with different number of states. However, here we first get to know the model by assuming that we know the number of states. And will look at model selection in the second practical.
+
+To fit a n mlHMM with the `mHMMbayes` package, we need a `data.frame` in which only the affective variables we want to use in the model are included, plus the subject ID as the first column.Please feel free to only use a subset of the provided affective variables, but do make sure to select at least 2 affective variables. 
 
 ---
 
@@ -166,9 +174,10 @@ emotion_mHMM <- emotion_nightgap[,c('subj_id', 'happy', 'relaxed', 'anxious', 'd
 ---
 
 ### Starting Values
-We first need to provide 'starting' values for the group-level means and standard deviations for each variable in each state, as well as for the transition probabilities. The model needs this information to complete the first pass of the iterative estimation algorithm. Sensible initial values help to avoid label switching in the sampling process and are therefore recommended.
 
-We will start with the specification of sensible starting values of the emission distribution (i.e. the state-specific means and standard deviation). If we assume a 2-state model, it is sensible to assume that we will have a 'positive emotion' state and a 'negative emotion' state. Define the means of the variable and state specific emission distributions to align with this idea. **Do not use equivalent means for one dependent variable over the states!** Sensible would be to base it on the observed data; we can look at the observed range for each variable, and split the data in 2 in the middle of this range, creating 2 subsets. Within each subset, we can then evaluate the median and use these as starting values. This is the approach we will take. Do, however, make sure that the starting values are not too close to the boundary of the observed range, and that the starting values for each state are not too far apart in relation to the standard deviation.
+Fitting the mlHMM requires setting starting values for all model parameters. Specifically, we need to provide starting values for the group-level means and standard deviations for each variable in each state, as well as for the transition probabilities. The model needs this information to complete the first pass of the iterative estimation algorithm. Sensible initial values help to avoid label switching in the sampling process and are therefore recommended.
+
+We will start with the specification of starting values of the emission distribution (i.e. the state-specific means and standard deviation). If we assume a 2-state model, for the type of variables we model here, it is plausible to assume that we will have a 'positive' state and a 'negative' state. Define the means of the variable and state specific emission distributions to align with this idea. **Do not use equivalent means for one dependent variable over the states!** Sensible would be to base it on the observed data; we can look at the observed range for each variable, and split the data in 2 in the middle of this range, creating 2 subsets. Within each subset, we can then evaluate the median and use these as starting values. This is the approach we will take. Do, however, make sure that the starting values are not too close to the boundary of the observed range, and that the starting values for each state are not too far apart in relation to the standard deviation.
 
 Regarding the standard deviations of the emission distribution, define them such that the emission distribution for state 1 and 2 together cover the entire range of observations (remember, participants could use a slider ranging from 0 to 100) with reasonable support. For example, given our data, it would not make sense to use a standard deviation of 3 (as 95% of the mass of the distribution will only span mean+/- 2 * 3 values out of 100), but a standard deviation of 10 or 15 would make sense.
 
@@ -222,7 +231,7 @@ start_emiss <- list(matrix(c(70, 15,                                     # happy
 
 The next step is to specify starting values for the transition probabilities. `start_gamma` should be a `m` by `m` matrix. The elements on each row should sum to 1.
 
-Make sure that the starting values are sensible. That is, for gamma, usually the elements contained on the diagonal (i.e., the self-transitions) are larger than the off-diagonal values to indicate that from one timepoint to another, subjects are more likely to remain in the same state than to switch to a new one.
+Make sure that the starting values are sensible. That is, for gamma, usually the elements contained on the diagonal (i.e., the self-transitions) are larger than the off-diagonal values to indicate that from one time point to another, subjects are more likely to remain in the same state than to switch to a new one.
 
 **C.** Set up the starting values for the transition probabilities in the object `start_gamma` using the starter code below.
 
@@ -242,6 +251,7 @@ start_gamma <- matrix(c(0.7, 0.3,
 ---
 
 ## Specifying Priors
+
 Since the *mHMMbayes* package uses Bayesian estimation, we need to set up priors for the model parameters. Ideally, when available, these reflect the prior knowledge about the parameters The prior for the transition distributions can be set manually using `prior_gamma()`, but we will use the default priors built in the function. For continuous data, the prior for the emission distribution must be set using the `prior_emiss_cont()` function.
 
 **Exercise 7**
@@ -397,11 +407,6 @@ emiss_group
 Especially when you have a large number of states and/or a large number of dependent variables, visualizing the group level parameters can be very helpful. 
 
 In addition to the helper functions we provided you with, there is a package available on GitHub to visualize output created using the `mHMMbayes` package. You can load it as follows:
-
-```{r, eval = FALSE}
-devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
-library(ggmHMM)
-```
 
 ---
 
