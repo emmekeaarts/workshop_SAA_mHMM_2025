@@ -81,7 +81,7 @@ The `mHMMbayes` package supports data that take the distributional form of Norma
 15 min annotated video recordings of therapy session
 
 <div align="center">
-<img src="./figures/example interaction data.png" width=730>
+<img src="./figures1/example interaction data.png" width=730>
 </div>
 
 ## Possible research questions
@@ -95,7 +95,7 @@ The `mHMMbayes` package supports data that take the distributional form of Norma
 ## The hidden Markov model {.smaller}
 
 <div align="center">
-<img src="figures/HMM illustration_stats V2.png" width=1000>
+<img src="figures1/HMM illustration_stats V2.png" width=1000>
 </div>
 
 Given example data, assume 
@@ -106,20 +106,20 @@ Given example data, assume
 ## Three nonverbal communication states
 
 <div align="center">
-<img src="./figures/State composition V2.png" width=650>
+<img src="./figures1/State composition V2.png" width=650>
 </div>
 
 ## Dynamics in nonverbal communication 
 
 <div align="center">
 <br>
-<img src="./figures/State dynamics.png" width=450>
+<img src="./figures1/State dynamics.png" width=450>
 </div>
 
 ## Heterogeneity in state dynamics 
 
 <div align="center">
-<img src="./figures/dyad_state_trans_patient_reduced.png" width=550>
+<img src="./figures1/dyad_state_trans_patient_reduced.png" width=550>
 </div>
 
 ---
@@ -147,28 +147,28 @@ out_3st_cov <- mHMM(s_data = MHMM_nonverbal,
                     mcmc = list(J = J, burn_in = burn_in))
 ```
 <div align="center">
-<img src="./figures/Predicted and observed transition probabilities.png" width=750>
+<img src="./figures1/Predicted and observed transition probabilities.png" width=750>
 </div>
 
 ## Predicted nonverbal state dynamics
 
 <div align="center">
 <br>
-<img src="./figures/predicted state dynamics new - reduced.png" width=900>
+<img src="./figures1/predicted state dynamics new - reduced.png" width=900>
 </div>
 
 ## Predicted nonverbal state dynamics
 
 <div align="center">
 <br>
-<img src="./figures/predicted state dynamics new.png" width=900>
+<img src="./figures1/predicted state dynamics new.png" width=900>
 </div>
 
 ## Nonverbal communication state sequences
 
 <div align="center">
 <br>
-<img src="./figures/predicted states new.png" width=950>
+<img src="./figures1/predicted states new.png" width=950>
 </div>
 
 
@@ -243,3 +243,13 @@ More info: “Go multivariate: Recommendations on Bayesian multilevel HMMs with 
 <br>
 <font size="6"></font>
 </div>
+
+
+## References 
+
+
+>- <font size="3"> Aarts, E., & Haslbeck, J. M. B. (2025, April 3). Modelling Psychological Time Series with Multilevel Hidden Markov Models: A Numerical Evaluation and Tutorial. *PsyArXiv*. [Doi: 10.31234/osf.io/y2u5s_v2](https://doi.org/10.31234/osf.io/y2u5s_v2). </font>
+
+>- <font size="3">Hale III, W.W., & **Aarts, E.** (2023). Hidden Markov model detection of interpersonal interaction dynamics in predicting patient depression improvement in psychotherapy: Proof-of-concept study. Journal of Affective Disorders Reports, 14, 100635. [Doi: 10.1016/j.jadr.2023.100635](https://doi.org/10.1016/j.jadr.2023.100635) </font>
+
+>- <font size="3"> Mildiner Moraga, S., & **Aarts, E.** (2023). Go Multivariate: Recommendations on Bayesian Multilevel Hidden Markov Models with Categorical Data. Multivariate Behavioral Research, 1-29. [Doi: 10.1080/00273171.2023.2205392](https://doi.org/10.1080/00273171.2023.2205392) </font>

@@ -40,7 +40,7 @@ Expand the HMM to the multilevel framework
 And 
 
 - Model selection problem
-- Model fit
+- Model diagnostics and fit
 - Using the example of CAB crisis states
 
 
@@ -76,7 +76,7 @@ Analyzing data from multiple individuals
 
 <div style = "float: right; width: 45%;">
 <div align="left">
-<img src="./figures/Fig_Illustration_Heter_EA.png" width=480><br>
+<img src="./figures1/Fig_Illustration_Heter_EA.png" width=480><br>
 </div>
 </div>
 
@@ -118,7 +118,7 @@ Combining:
 
 <div align="center">
 <br>
-<img src="./figures/CAB data.png" width=950>
+<img src="./figures1/CAB data.png" width=950>
 </div>
 
 26 patients, 60 observations per patient per CAB factor
@@ -132,7 +132,7 @@ emiss_subj <- obtain_emiss(CAB_mHMM_4st, level = "individual")
 <div align="center">
 <br>
 <br>
-<img src="./figures/Emissions - group and patient.png" width=850>
+<img src="./figures1/Emissions - group and patient.png" width=850>
 </div>
 
 ## Individual level - emission distribution 
@@ -144,14 +144,14 @@ emiss_subj <- obtain_emiss(CAB_mHMM_4st, level = "individual")
 Important to check conceptual state equivalence over individuals! 
 
 <div align="center">
-<img src="./figures/state_comp_patient2.png" width=850>
+<img src="./figures1/state_comp_patient2.png" width=850>
 </div>
 
 ## CAB crisis state dynamics 
 
 <div align="center">
 <br>
-<img src="./figures/CAB state dynamics network V3 - group only.png" width=500>
+<img src="./figures1/CAB state dynamics network V3 - group only.png" width=500>
 </div>
 
 ## Individual level - state dynamics 
@@ -161,7 +161,7 @@ gamma_subj <- obtain_gamma(CAB_mHMM_4st, level = "individual")
 
 <div align="center">
 <br>
-<img src="./figures/CAB state dynamics network V3 - patients only.png" width=950>
+<img src="./figures1/CAB state dynamics network V3 - patients only.png" width=950>
 </div>
 
 
@@ -211,48 +211,48 @@ Note: within Bayesian framework, can make the number of states a model parameter
 
 Pohle & Langrock (2017) suggested a pragmatic step-by-step approach: 
 
-- Decide a priori plausible min and max number of states.
-- Fit decided on models.
-- Inspect state composition of fitted models.
-- Use model checking to include / exclude models.  
+1. Decide a priori plausible min and max number of states.
+2. Fit decided on models.
+3. Inspect state composition of fitted models.
+4. Use model checking to include / exclude models.  
     - In case of Bayesian framework: model convergence!
-- Consider model selection criteria for guidance.
-- Make a choice, also based on **study aim and expert knowledge**, and computational considerations. 
-- When no clear preference, report all (viable) models.
+5. Consider model selection criteria for guidance.
+6. Make a choice, also based on **study aim and expert knowledge**, and computational considerations. 
+7. When no clear preference, report all (viable) models.
 
 ## Model selection: example
 
 <div align="center">
 <br>
-<img src="./figures/CAB data.png" width=950>
+<img src="./figures1/CAB data.png" width=950>
 </div>
 
 
-## Model selection: state composition
+## Model selection: 3. inspect state composition
 
 <div align="center">
-<img src="./figures/Model selection CAB factors_2st.png" width=750>
+<img src="./figures1/Model selection CAB factors_2st.png" width=750>
 </div>
 
-## Model selection: state composition
+## Model selection: 3. inspect state composition
 
 <div align="center">
-<img src="./figures/Model selection CAB factors_3st.png" width=750>
+<img src="./figures1/Model selection CAB factors_3st.png" width=750>
 </div>
 
-## Model selection: state composition
+## Model selection: 3. inspect state composition
 
 <div align="center">
-<img src="./figures/Model selection CAB factors_4st.png" width=750>
+<img src="./figures1/Model selection CAB factors_4st.png" width=750>
 </div>
 
-## Model selection: state composition
+## Model selection: 3. inspect state composition
 
 <div align="center">
-<img src="./figures/Model selection CAB factors_5st.png" width=750>
+<img src="./figures1/Model selection CAB factors_5st.png" width=750>
 </div>
 
-## Model selection: convergence
+## Model selection: 4. inspect convergence
 
 | Mean Rhat (\% $>$ 1.2)   | 2-state model| 3-state model| 4-state model| 5-state model|
 | :----------------------: | :----------: | :----------: | :----------: |:-----------: |
@@ -261,7 +261,7 @@ Pohle & Langrock (2017) suggested a pragmatic step-by-step approach:
 | Composition parameters   | 1.01 (0.0\%) | 1.01 (0.0\%) | 1.03 (0.0\%) | 1.04 (4.0\%) |
 
 
-## Model selection: model selection criteria
+## Model selection: 5. model selection criteria
 ```{r, fig.align='center', fig.width=8, fig.height=4}
 AIC <- data.frame(AIC = c(2664.32, 2630.36, 2616.45, 2623.73), 
                   states = c(2:5))
@@ -287,7 +287,7 @@ ggplot(AIC, mapping = aes(x = states, y = AIC)) +
 <br>
 <br>
 <br>
-<font size="6"> Label switching, Convergence, PPCs and pseudo residuals </font>
+<font size="6"> Convergence,  Label switching, PPCs and pseudo residuals </font>
 </div>
 
 ## Model checking: convergence
@@ -320,7 +320,7 @@ $\rightarrow$ multiple MCMC chains.
 ## Model checking: convergence - example
 
 <div align="center">
-<img src="./figures/Trace plots self control.png" width=650>
+<img src="./figures1/Trace plots self control.png" width=650>
 </div>
 
 ## Model checking: convergence - example
@@ -349,7 +349,7 @@ How to check:
 ## Model checking: label switching
 
 <div align="center">
-<img src="./figures/Label switching example.png" width=550>
+<img src="./figures1/Label switching example.png" width=550>
 </div>
 
 ## Model checking: label switching
@@ -366,7 +366,7 @@ Occurrence depends on:
 <div style = "float: right; width: 60%;">
 <div align="center">
 <br>
-<img src="./figures/Label Switching p = 2.png" width=600>
+<img src="./figures1/Label Switching p = 2.png" width=600>
 </div>
 </div>
 
@@ -386,7 +386,7 @@ Occurrence depends on:
 <div style = "float: right; width: 60%;">
 <div align="center">
 <br>
-<img src="./figures/Label Switching p = 8.png" width=600>
+<img src="./figures1/Label Switching p = 8.png" width=600>
 </div>
 </div>
 
@@ -419,14 +419,14 @@ PPCs can be used to assess model fit at both the individual and group-level.
 
 <div align="center">
 <br>
-<img src="./figures/PPC mean V2.png" width=700>
+<img src="./figures1/PPC mean V2.png" width=700>
 </div>
 
 ## Model checking: PPCs - example
 
 <div align="center">
 <br>
-<img src="./figures/PPC SD V2.png" width=700>
+<img src="./figures1/PPC SD V2.png" width=700>
 </div>
 
 
@@ -449,7 +449,7 @@ Use for typical residual checking: e.g., normality, heteroscedasticity, lack of 
 <div align="center">
 <br>
 <br>
-<img src="./figures/Pseudo residuals over time.png" width=950>
+<img src="./figures1/Pseudo residuals over time.png" width=950>
 </div>
 
 ## Model checking: Pseudo residuals - example
@@ -457,7 +457,7 @@ Use for typical residual checking: e.g., normality, heteroscedasticity, lack of 
 <div align="center">
 <br>
 <br>
-<img src="./figures/Pseudo residuals density.png" width=950>
+<img src="./figures1/Pseudo residuals density.png" width=950>
 </div>
 
 
@@ -466,7 +466,7 @@ Use for typical residual checking: e.g., normality, heteroscedasticity, lack of 
 <div align="center">
 <br>
 <br>
-<img src="./figures/ACF self control.png" width=950>
+<img src="./figures1/ACF self control.png" width=950>
 </div>
 
 
@@ -493,7 +493,11 @@ https://github.com/emmekeaarts/workshop_SAA_mHMM_2025
 
 ## References 
 
-- <font size="3"> Pohle, J., Langrock, R., Van Beest, F. M., & Schmidt, N. M. (2017). Selecting the number of states in hidden Markov models: pragmatic solutions illustrated using animal movement. Journal of Agricultural, Biological and Environmental Statistics, 22, 270-293. DOI: 10.1007/s13253-017-0283-8 </font>
+>- <font size="3"> Aarts, E., Montagne, B., van der Meer, T. J., & Hagenaars, M. A. (2025). Capturing crisis dynamics: a novel personalized approach using multilevel hidden Markov modeling. *Frontiers in Psychiatry*, 15, 1501911. [Doi: 10.3389/fpsyt.2024.1501911](https://doi.org/10.3389/fpsyt.2024.1501911). </font>
+
+>- <font size="3"> Aarts, E., & Haslbeck, J. M. B. (2025, April 3). Modelling Psychological Time Series with Multilevel Hidden Markov Models: A Numerical Evaluation and Tutorial. *PsyArXiv*. [Doi: 10.31234/osf.io/y2u5s_v2](https://doi.org/10.31234/osf.io/y2u5s_v2). </font>
+
+>- <font size="3"> Pohle, J., Langrock, R., Van Beest, F. M., & Schmidt, N. M. (2017). Selecting the number of states in hidden Markov models: pragmatic solutions illustrated using animal movement. Journal of Agricultural, Biological and Environmental Statistics, 22, 270-293. [Doi: 10.1007/s13253-017-0283-8](https://doi.org/10.1007/s13253-017-0283-8) </font>
 
 ## mHMMbayes - Metropolis within Gibbs sampler
 

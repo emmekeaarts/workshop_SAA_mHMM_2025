@@ -52,8 +52,6 @@ install.packages(c("ggplot2", "mHMMbayes"))
 | 16:45 | 45       | Practical    | Model selection and fit + subject level parameters  | [`More_advanced_pract.html`](./practicals/02_more_advanced/More_advanced_pract.html) |
 | 17:30 | 30       | Conclusion   | Final points + questions                                        |  [`Final_points.html`](./lectures/03_final_points/Final_points.html)    |
 
-You can download the data set we will be using from [`here`](https://github.com/jmbh/EmotionTimeSeries/tree/master/DataClean/Rowland2020), see practical 1 for an introduction of the data set and references. Save it in a nicely accessible place, we will be using it in every practical.
-
 
 ## Additional links
 
