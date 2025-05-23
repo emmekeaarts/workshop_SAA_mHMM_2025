@@ -2,7 +2,7 @@
 title: "Introduction: fitting a multilevel hidden Markov model"
 mainfont: Arial
 params:
-  answers: true
+  answers: false
 fontsize: 12pt
 urlcolor: blue
 output: 
@@ -11,7 +11,7 @@ output:
     toc_depth: 3
     toc_float: true
     theme: paper
-    pandoc_args: --output=Intro_pract_answers.html
+    pandoc_args: --output=Intro_pract.html
 ---
 
 ```{r setup, include=FALSE}
@@ -24,10 +24,10 @@ if(!requireNamespace("ggmHMM", quietly = TRUE)) devtools::install_github("pepijn
 library(mHMMbayes)
 library(ggmHMM)
 
-source('../helpers.R')
+source('../data/helpers.R')
 
 # Load Data
-emotion_data <- readRDS("./data/data_Rowland2020.rds")
+emotion_data <- readRDS("../data/data_Rowland2020.rds")
 emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')]
 
 emotion_data$subj_id2[1] <- 1
@@ -364,8 +364,8 @@ out_2st_emotion <- mHMM(s_data = emotion_mHMM,
 
 ```
 
-```{r, echo=FALSE}
-out_2st_emotion <- readRDS("./data/out_2st_emotion.rds")
+```{r, include=FALSE}
+out_2st_emotion <- readRDS("../data/out_2st_emotion.rds")
 ```
 
 ---
