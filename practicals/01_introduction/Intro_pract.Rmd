@@ -2,7 +2,7 @@
 title: "Introduction: fitting a multilevel hidden Markov model"
 mainfont: Arial
 params:
-  answers: false
+  answers: true
 fontsize: 12pt
 urlcolor: blue
 output: 
@@ -11,7 +11,7 @@ output:
     toc_depth: 3
     toc_float: true
     theme: paper
-    pandoc_args: --output=Intro_pract.html
+    pandoc_args: --output=Intro_pract_answers.html
 ---
 
 ```{r setup, include=FALSE}
