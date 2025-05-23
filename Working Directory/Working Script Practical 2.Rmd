@@ -1,0 +1,236 @@
+---
+title: "Working Script Practical 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load packages
+```{r}
+if(!requireNamespace("coda", quietly = TRUE)) install.packages("coda")
+library(ggplot2) # for plotting
+library(ggmHMM) # plotting mHMM objects
+library(coda) # for assessing convergence
+source('./helpers.R')
+```
+
+## Subject Specific Parameters
+
+### Emission Distributions
+
+**Exercise 1**
+Obtain the subject specific emission distribution parameters using the function `obtain_emiss()` and set the input argument `level` to `"subject"`. Save the output in the object `emiss_subject`. Inspect the output. 
+
+```{r}
+
+```
+
+**Exercise 2**
+Plot (a subset of) the subject specific emission distribution means, using the function `plot_emiss()` from the *ggmHMM* package and investigate how much the means differ over subjects. Hint: both functions have the argument `subject`, which can be used to specify a vector of subjects to plot random effects for.
+
+```{r}
+
+```
+
+**Exercise 3**
+Plot (a subset of) the subject specific emission distribution means connecting the subject specific means, and visually investigate whether the state 1 is a relatively good state and state 2 a relatively bad state over subjects. Hint: this can be done by specifying `line = TRUE` in `plot_emiss()`.
+
+```{r}
+
+```
+
+### Transition probabilities Gamma
+
+**Exercise 4**
+Obtain the subject specific transition probabilities using the function `obtain_gamma()` and set the input argument `level` to `"subject"`. Save the output in the object `gamma_subject`. Inspect the output. 
+
+```{r}
+
+```
+
+**Exercise 5**
+Plot (a subset of) the subject specific transition probabilities, and investigate how much the transition probabilities differ over subjects.
+
+```{r}
+
+```
+
+**Exercise 6**
+Interpret the transition probabilities. Is there much heterogeneity between persons? Are subjects generally more likely to stay in the same state, or switch states? What does this mean, if we take the substantive interpretation of the states into account?
+
+## Model Selection
+
+### Fit Models with a Plausible Number of States
+
+**Exercise 7**
+To save time we have already pre-run a 3-state and 4-state model. Use the function `readRDS()` to load the fitted models from the files `out_3st_emotion.rds` and `out_4st_emotion.rds`, and save them in the objects `out_3st_emotion` and `out_4st_emotion`. The settings we used are shown in the practical .html document.
+
+```{r}
+out_3st_emotion <- readRDS("./data/out_3st_emotion.rds")
+out_4st_emotion <- readRDS("./data/out_4st_emotion.rds")
+```
+
+**Exercise 8**
+Inspect the general output of the 3- and 4- state models by using the inbuilt `print()` and `summary()` for objects of class `mHMM` returned by the function `mHMM()`.
+
+```{r}
+
+```
+
+### Inspect the state composition of the fitted models
+
+**Exercise 9**
+Use the function `plot_emiss()` from the *ggmHMM* package to visualize the emission distributions of the three-state and four-state model. Do not plot subject-specific effects. Does it seem to make sense to add extra state(s)?
+
+```{r}
+
+```
+
+**Exercise 10**
+Obtain the AIC values of the 2-, 3-, and 4-state model using the `print()` function on the mHMM objects `out_2st_emotion`, `out_3st_emotion`, `out_4st_emotion`, and compare. It can be helpful to visualize the AIC values over the states to get a feeling for how much the AIC decreases over the models. 
+
+```{r}
+
+```
+
+## Model Fit
+### Convergence
+
+**Exercise 11**
+Specify new starting values to fit at least one additional chain for the 2 state multilevel HMM model. Do not yet run the model.
+
+```{r}
+
+```
+
+**Exercise 12**
+To save time, we will provide you with an additional chain, run with the starting values below. Use the function `readRDS()` to load the fitted model from the file `out_2st_emotion_b.rds`, and save it in the object `out_2st_emotion_b`.
+
+```{r}
+out_2st_emotion_b <- readRDS("./data/out_2st_emotion_b.rds")
+```
+
+**Exercise 13**
+
+**A.** Use `plot_trace()` to create a trace plot for the group-level transition probabilities of the 2-state model. Use both `out_2st_emotion` and `out_2st_emotion_b`. Hint: you leed to put the models in a list using `list()` to use them in `plot_trace()`.
+```{r}
+
+```
+
+**B.** In addition to the group level parameters, it is also important to check convergence at the subject level. Use the function `plot_trace()` to create a trace plot for the subject specific emission means of the first subject, for the variable "happy". Use both `out_2st_emotion` and `out_2st_emotion_b`.
+
+```{r}
+
+```
+
+**Exercise 14**
+Use the function `f_GR()` to calculate the $\hat{R}$ values for the group level transition probabilities and emission distribution means. Did the model reach convergence?
+
+```{r}
+
+```
+
+### Label Switching
+
+**Exercise 15**
+Use the function `plot_label_switching()` to evaluate label switching for subject 1 to 5, for the 3-state model. Is there a label switching issue for these persons? And for subjects 6 to 10?
+
+```{r}
+
+```
+
+**Exercise 16**
+The estimate of subject 9's state specific means for each variable is calculated by taking the mean (or median) of all sampled values after the specified burnin period. How does the label switching issue affect the estimates of this subject's state-specific means?
+
+## PPCs
+
+**Exercise 17**
+Use the starter script below to simulate 100 datasets based on the model parameters of the 2-state multilevel HMM. 
+
+```{r, eval = FALSE}
+n_sim <- 100 # for now, we will use 100 simulated datasets, but feel free to change. 
+sim_datasets <- vector("list", n_sim)
+
+m <- ...        # specify the number of states 
+n_dep <- ...    # specify the number of dependent variables used in mHMM()
+
+# calculate variance in emission distribution
+sapply(out_2st_emotion$emiss_varmu_bar, apply, 2, mean, na.rm = TRUE)
+
+for(i in 1:n_sim){
+  sim_datasets[[i]] <- sim_mHMM(n_t = 240 , # specify the number of beeps per subject
+                                n = 125,    # specify the number of subjects  
+                                data_distr = "continuous",
+                                gen = list(m = m, n_dep = n_dep),
+                                gamma = ... ,   # specify the obtained transition prob matrix 
+                                emiss_distr = ... , # specify the emission distribution, see help file
+                                var_gamma = 0.01,
+                                var_emiss = c(300, 300, 200, 200)
+  )
+}
+```
+
+**Exercise 18**
+For each simulated data set, calculate the summary statistics of interest for all four variables (i.e., mean and standard deviation).
+
+```{r}
+means_simdata <- matrix(, nrow = n_sim, ncol = n_dep)
+for(i in 1:n_sim){
+  means_simdata[i,] <- apply(sim_datasets[[i]]$obs[,2:(n_dep + 1)], 2, mean)
+}
+
+sd_simdata <- matrix(, nrow = n_sim, ncol = n_dep)
+for(i in 1:n_sim){
+  sd_simdata[i,] <- sqrt(apply(sim_datasets[[i]]$obs[,2:(n_dep + 1)], 2, var))
+}
+```
+
+**Exercise 19**
+Plot the summary characteristics (mean and sd) of the simulated datasets in histograms, and add a vertical line for the mean and sd in the observed data to aid the comparison. 
+
+```{r, eval = params$answers}
+vars <- names(obtain_emiss(out_2st_emotion))
+
+par(mfrow = c(2,4))
+for(i in 1:n_dep){
+  hist(means_simdata[,i], 
+       main = vars[i], 
+       xlab = paste("Mean", vars[i]) 
+  )
+  abline(col = "red", lwd = 2, v = mean(emotion_mHMM[,1+i], na.rm = TRUE))
+}
+
+# plot histogram sd simulated data and observed in real data
+for(i in 1:n_dep){
+  hist(sd_simdata[,i], 
+       main = vars[i], 
+       xlab = paste("SD", vars[i]), 
+       xlim = c(20,30)
+  )
+  abline(col = "red", lwd = 2, v = sqrt(var(emotion_mHMM[,1+i], na.rm = TRUE)))
+}
+```
+
+### Pseudoresiduals
+
+**Exercise 20**
+
+**A.** Use `GetResid()` to obtain pseudoresiduals for subject 1 for all variables. Do this for both the 2-state and 3-state model. Hint: use the function `lapply()` to loop over the variables.
+```{r}
+
+```
+
+**B.** Obtain the RMSE for the pseudoresiduals of subject 1 for all variables, and compare the RMSE of the 2-state and 3-state model. Which model fits better for this person? 
+```{r}
+
+```
+
+**Exercise 21**
+Use `PlotRes()` to plot the pseudoresiduals for subject 1 to 3 to for the variable `happy`, for the 3-state model. How do you evaluate the model fit for these subjects?
+
+```{r}
+
+```
+

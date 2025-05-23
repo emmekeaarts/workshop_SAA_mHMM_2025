@@ -1506,6 +1506,8 @@ border-radius: 0px;
 </div>
 
 
+<p><strong>Note.</strong> We have a working script prepared for you to
+put your answers in, called “Working Script Practical 2.Rmd.</p>
 <p>This is the second practical, we will dive into more advanced
 matters: model selection, subject specific parameters, covariates, and
 model fit. We continue with the same dataset: the open access dataset
@@ -1555,16 +1557,15 @@ parameters (e.g., the variable and state specific means) vary over
 subjects, it can be helpful to plot the subject specific emission
 distribution parameters, for example by adding the subject specific
 parameters as dots to a group level barplot of the emission means. This
-can be done using the helper function <code>PlotEmiss()</code> or the
-<em>ggmHMM</em> function <code>plot_emiss()</code>.</p>
+can be done using the <em>ggmHMM</em> function
+<code>plot_emiss()</code>.</p>
 <hr />
 <p><strong>Exercise 2</strong> Plot (a subset of) the subject specific
-emission distribution means, using the helper function
-<code>PlotEmiss()</code> or the function <code>plot_emiss()</code> from
-the <em>ggmHMM</em> package and investigate how much the means differ
-over subjects. Hint: both functions have the argument
-<code>subject</code>, which can be used to specify a vector of subjects
-to plot random effects for.</p>
+emission distribution means, using the function
+<code>plot_emiss()</code> from the <em>ggmHMM</em> package and
+investigate how much the means differ over subjects. Hint: both
+functions have the argument <code>subject</code>, which can be used to
+specify a vector of subjects to plot random effects for.</p>
 <hr />
 <p>In addition, it is important to check that the states represent the
 same construct over subjects. Working with our current dataset, that
@@ -1579,8 +1580,7 @@ indicator by lines.</p>
 emission distribution means connecting the subject specific means, and
 visually investigate whether the state 1 is a relatively good state and
 state 2 a relatively bad state over subjects. Hint: this can be done by
-specifying <code>line = TRUE</code> in <code>PlotEmiss()</code> or
-<code>plot_emiss()</code>.</p>
+specifying <code>line = TRUE</code> in <code>plot_emiss()</code>.</p>
 <hr />
 </div>
 <div id="transition-probabilities-gamma" class="section level3">
@@ -1619,8 +1619,16 @@ transitions.</p>
 transition probabilities, and investigate how much the transition
 probabilities differ over subjects. This can be done in 2 ways:</p>
 <ul>
-<li>With the helper function <code>PlotHeat()</code>, a single heatmap
-may be plotted, by subsetting the list <code>gamma_subject</code>.</li>
+<li>With the helper function <code>PlotTrans()</code>, a barplot may be
+plotted showing the group level effects, with points for the
+subject-specific effects (ore a subset thereof). It uses the following
+arguments:
+<ul>
+<li>model: a model of class <code>mHMM</code></li>
+<li>subject: an optional vector of subject to plot subject-specific
+effects for. If not specified, all subject-specific effects are
+plotted.</li>
+</ul></li>
 <li>With the function <code>plot_gamma()</code> from the <em>ggmHMM</em>
 package, a heatmap may be plotted for each subject (or a subset)
 separately. This can be done by
@@ -1634,10 +1642,10 @@ subject.</li>
 </ul></li>
 </ul>
 <p><strong>Exercise 6</strong> Interpret the transition probabilities.
-To what extent would you say that subjects differ in their transition
-probabilities? Are subjects generally more likely to stay in the same
-state, or switch states? What does this mean, if we take the substantive
-interpretation of the states into account?</p>
+Is there much heterogeneity between persons? Are subjects generally more
+likely to stay in the same state, or switch states? What does this mean,
+if we take the substantive interpretation of the states into
+account?</p>
 <p>Note that for a two-state model, the information given by the
 transition probabilities is limited; The diagonals inform us about the
 probability of remaining in a state (and therefore the
@@ -1668,7 +1676,8 @@ first practical, and saved in the object
 3-state and 4-state model. Use the function <code>readRDS()</code> to
 load the fitted models from the files <code>out_3st_emotion.rds</code>
 and <code>out_4st_emotion.rds</code>, and save them in the objects
-<code>out_3st_emotion</code> and <code>out_4st_emotion</code>.</p>
+<code>out_3st_emotion</code> and <code>out_4st_emotion</code>. The
+settings we used are shown below.</p>
 <pre class="r"><code>out_3st_emotion &lt;- readRDS(&quot;./data/out_3st_emotion.rds&quot;)
 out_4st_emotion &lt;- readRDS(&quot;./data/out_4st_emotion.rds&quot;)</code></pre>
 <pre class="r"><code>####################
@@ -1768,12 +1777,11 @@ by the function <code>mHMM()</code>.</p>
 this to evaluate whether it seems sensible to add extra states.
 Especially with multivariate data, inspecting the composition of the
 states is done most easily visually.</p>
-<hr />
-<p><strong>Exercise 9</strong> Use the helper function
-<code>PlotEmiss()</code> or the function <code>plot_emiss()</code> from
-the <em>ggmHMM</em> package to visualize the emission distributions of
-the three-state and four-state model. Do not plot subject-specific
-effects. Does it seem to make sense to add extra state(s)?</p>
+<p><strong>Exercise 9</strong> Use the function
+<code>plot_emiss()</code> from the <em>ggmHMM</em> package to visualize
+the emission distributions of the three-state and four-state model. Do
+not plot subject-specific effects. Does it seem to make sense to add
+extra state(s)?</p>
 <hr />
 <p>Next, let’s compare the 2-, 3-, and 4-state model on the model
 selection criterion AIC.</p>
@@ -1799,11 +1807,11 @@ Pseudoresiduals.</p>
 <h3>Convergence</h3>
 <p>Within any Bayesian analysis, convergence needs to be assessed in
 order to rule out output resulting from a local (instead of global)
-maximum. To check this, multiple chains (at least 2, but we recommend
-using at least 4) need to be run, performing the same analysis but using
-(slightly) different starting values in each chain. Note that in
-multilevel hidden Markov models, it is important to still keep sensible
-starting values when varying these. For example, when modelling
+maximum. To check this, multiple chains (now we will use 2, but we
+recommend using at least 4) need to be run, performing the same analysis
+but using (slightly) different starting values in each chain. Note that
+in multilevel hidden Markov models, it is important to still keep
+sensible starting values when varying these. For example, when modelling
 continuous or count data, we need to keep the same sensible ordering of
 <span class="math inline">\(\bar{\mu}_i\)</span> or <span class="math inline">\(\bar{\lambda}_i\)</span> given data and process.
 Values of the (weakly informative) prior distributions should be fixed
@@ -1813,7 +1821,7 @@ over the chains.</p>
 least one additional chain for the 2 state multilevel HMM model. Do not
 yet run the model.</p>
 <p><strong>Exercise 12</strong> To save time, we will provide you with
-an adittional chain, run with the starting values below. Use the
+an additional chain, run with the starting values below. Use the
 function <code>readRDS()</code> to load the fitted model from the file
 <code>out_2st_emotion_b.rds</code>, and save it in the object
 <code>out_2st_emotion_b</code>.</p>
@@ -1822,6 +1830,7 @@ different from the ones you specified in your model in the first
 practical. For now, we will ignore this for simplicity, but it is
 important to use the same settings for the prior when applying the model
 yourself.</p>
+<pre class="r"><code>out_2st_emotion_b &lt;- readRDS(&quot;./data/out_2st_emotion_b.rds&quot;)</code></pre>
 <pre class="r"><code>m &lt;- 2
 n_dep &lt;- 4
 
@@ -1868,7 +1877,9 @@ for.</li>
 <p><strong>A.</strong> Use <code>plot_trace()</code> to create a trace
 plot for the group-level transition probabilities of the 2-state model.
 Use both <code>out_2st_emotion</code> and
-<code>out_2st_emotion_b</code>.</p>
+<code>out_2st_emotion_b</code>. Hint: you leed to put the models in a
+list using <code>list()</code> to use them in
+<code>plot_trace()</code>.</p>
 <p><strong>B.</strong> In addition to the group level parameters, it is
 also important to check convergence at the subject level. Use the
 function <code>plot_trace()</code> to create a trace plot for the
@@ -1920,17 +1931,27 @@ and therefore the interpretation of the states. This is called label
 switching. In the mHMM, label switching happens at the subject level,
 but consequently also affects estimates of the group-level effects. It
 is important to check to what extent this happens.</p>
+<p>To check for label switching, it is helpful to use trace plots for
+the subject-level parameters, similar to those from last exercise. It
+may, however, be useful here to show the trace plots from multiple
+states in a single plot, to see whether the states switch labels. This
+can be done with the helper function
+<code>plot_label_switching()</code>.</p>
+<p><code>plot_label_switching()</code> takes as arguments: * model:
+output object from <code>mHMM()</code> * subject: a vector of integers
+to select the subjects to create plots for. * vrb: a character vector to
+specify the variable to plot.</p>
 <hr />
-<p><strong>Exercise 15</strong></p>
-<p>For the 3-state model, use <code>plot_trace()</code> to create a
-trace plot for the subject-specific means of the variable “relaxed” for
-subject number 9. Do the same for the variable “depressed”. What do you
-notice?</p>
+<p><strong>Exercise 15</strong> Use the function
+<code>plot_label_switching()</code> to evaluate label switching for
+subject 1 to 5, for the 3-state model. Is there a label switching issue
+for these persons? And for subjects 6 to 10?</p>
 <p><strong>Exercise 16</strong> The estimate of subject 9’s state
 specific means for each variable is calculated by taking the mean (or
 median) of all sampled values after the specified burnin period. How
 does the label switching issue affect the estimates of this subject’s
 state-specific means?</p>
+<hr />
 </div>
 <div id="ppcs" class="section level3">
 <h3>PPCs</h3>
@@ -1992,6 +2013,15 @@ for(i in 1:n_sim){
 <p><strong>Exercise 18</strong> For each simulated data set, calculate
 the summary statistics of interest for all four variables (i.e., mean
 and standard deviation).</p>
+<pre class="r"><code>means_simdata &lt;- matrix(, nrow = n_sim, ncol = n_dep)
+for(i in 1:n_sim){
+  means_simdata[i,] &lt;- apply(sim_datasets[[i]]$obs[,2:(n_dep + 1)], 2, mean)
+}
+
+sd_simdata &lt;- matrix(, nrow = n_sim, ncol = n_dep)
+for(i in 1:n_sim){
+  sd_simdata[i,] &lt;- sqrt(apply(sim_datasets[[i]]$obs[,2:(n_dep + 1)], 2, var))
+}</code></pre>
 <hr />
 <p>Now that we have simulated datasets and obtained the summary
 characteristics, we will visually compare the characteristics of the
@@ -2000,6 +2030,26 @@ simulated data to that of the observed data.</p>
 <p><strong>Exercise 19</strong> Plot the summary characteristics (mean
 and sd) of the simulated datasets in histograms, and add a vertical line
 for the mean and sd in the observed data to aid the comparison.</p>
+<pre class="r"><code>vars &lt;- names(obtain_emiss(out_2st_emotion))
+
+par(mfrow = c(2,4))
+for(i in 1:n_dep){
+  hist(means_simdata[,i], 
+       main = vars[i], 
+       xlab = paste(&quot;Mean&quot;, vars[i]) 
+  )
+  abline(col = &quot;red&quot;, lwd = 2, v = mean(emotion_mHMM[,1+i], na.rm = TRUE))
+}
+
+# plot histogram sd simulated data and observed in real data
+for(i in 1:n_dep){
+  hist(sd_simdata[,i], 
+       main = vars[i], 
+       xlab = paste(&quot;SD&quot;, vars[i]), 
+       xlim = c(20,30)
+  )
+  abline(col = &quot;red&quot;, lwd = 2, v = sqrt(var(emotion_mHMM[,1+i], na.rm = TRUE)))
+}</code></pre>
 <hr />
 </div>
 <div id="pseudoresiduals" class="section level3">
@@ -2020,16 +2070,20 @@ arguments:</p>
 <ul>
 <li>data: the dataset used to build the model</li>
 <li>model: the fitted model</li>
-<li>j: integer specifying the variable to obtain residuals for</li>
-<li>i: the desired subject</li>
+<li>vrb: string specifying the variable obtain pseudoresiduals for</li>
+<li>subject: integer specifying the subject to obtain pseudoresiduals
+for</li>
 </ul>
 <p>It outputs a list with 4 elements:</p>
 <ul>
-<li>emp: the data of subject i for variable j</li>
-<li>model: the predicted values for subject i for variable j</li>
-<li>resid: the pseudoresiduals for subject i for variable j</li>
-<li>RMSE: the RMSE for subject i for variable j</li>
+<li>emp: the data of the subject for the variable ‘vrb’</li>
+<li>model: the predicted values of the subject for the variable
+‘vrb’</li>
+<li>resid: the pseudoresiduals of the subject for the variable
+‘vrb’</li>
+<li>RMSE: the RMSE for the subject for the variable ‘vrb’</li>
 </ul>
+<hr />
 <p><strong>Exercise 20</strong></p>
 <p><strong>A.</strong> Use <code>GetResid()</code> to obtain
 pseudoresiduals for subject 1 for all variables. Do this for both the
@@ -2038,6 +2092,7 @@ to loop over the variables.</p>
 <p><strong>B.</strong> Obtain the RMSE for the pseudoresiduals of
 subject 1 for all variables, and compare the RMSE of the 2-state and
 3-state model. Which model fits better for this person?</p>
+<hr />
 <p>After obtaining the pseudoresiduals, we can also plot them separately
 for each person and each variable to assess: 1. Whether the
 pseudoresiduals are (roughly) normally. 2. Whether there is a trend over
@@ -2046,12 +2101,20 @@ over time (can also be assessed using the autocorrelation). 3. Whether
 there are any outliers. 4. Whether variance is (roughly) stable over
 time.</p>
 <p>We have provided you with a helper function,
-<code>PlotResid()</code>, to plot the pseudoresiduals. It takes an
-object returned by <code>GetResid()</code> as input.</p>
+<code>PlotResid()</code>, to plot the pseudoresiduals. It takes the
+following arguments:</p>
+<ul>
+<li>model: output model from <code>mHMM()</code></li>
+<li>data: a data frame used to build the model.</li>
+<li>vrb: character string specifying the variable to plot
+pseudoresiduals for</li>
+<li>subject: vector of subjects to plot pseudoresiduals for.</li>
+</ul>
+<hr />
 <p><strong>Exercise 21</strong> Use <code>PlotRes()</code> to plot the
-pseudoresiduals for subject 1 for the variable <code>happy</code>
-(i.e. the first variable), for the 3-state model. How do you evaluate
-the model fit for this person?</p>
+pseudoresiduals for subject 1 to 3 to for the variable
+<code>happy</code>, for the 3-state model. How do you evaluate the model
+fit for these subjects?</p>
 </div>
 </div>
 

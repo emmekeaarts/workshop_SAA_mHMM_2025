@@ -90,189 +90,6 @@ plot_dens <- function(model, range_plot, steps = 0.5, level = "group", subject =
 }
 
 # --------------------------------------------------------
-# ---------- Extract Emission Estimates & Plot -----------
-# --------------------------------------------------------
-
-PlotEmiss <- function(model,
-                      parameter="Means",
-                      ranef = FALSE, # logic indicating whether the Random (subject) specific estimates for the means should be plotted
-                      line = FALSE, # logic indicating whether the lines between the dots should be plotted
-                      subject = NULL # vector indicating number of random effects to plot
-                      ) {
-  
-  # Basic info
-  m <- model$input$m
-  n_dep <- model$input$n_dep 
-  N <- model$input$n_subj
-  
-  # Parameter indicator
-  indpar <- ifelse(parameter=="Means", 1, 2)
-  
-  # ------ Getting the Parameters ------
-  emiss_group <- obtain_emiss(model)
-  labels <- names(emiss_group)
-  
-  ## Fixed effects
-  m_fixed <- matrix(NA, n_dep, m)
-  for(i in 1:n_dep) m_fixed[i, ] <- emiss_group[[i]][, indpar] # 1=mean; 2=SD; later make variable
-  colnames(m_fixed) <- paste("K = ", 1:m)
-  rownames(m_fixed) <- labels
-  # Order effects
-  ord <- order(m_fixed[1,], decreasing = TRUE)
-  m_fixed_ord <- m_fixed[, ord]
-  if(ranef){
-  ## Random Effects
-  emiss_subject <- obtain_emiss(model, level = "subject")
-  a_REs <- array(NA, dim=c(n_dep, m, N))
-  for(j in 1:N) for(i in 1:n_dep) a_REs[i, , j] <- emiss_subject[[i]][[j]][, indpar] # 1=mean; 2=SD; later make variable
-  # Order REs
-  a_REs_ord <- a_REs[, ord, ]
-  }
-  
-  # ------ Plotting ------
-  
-  ## Plotting basics
-  library(RColorBrewer)
-  cols <- brewer.pal(n_dep+1, "Set1")[-6]
-  
-  par(mar=c(3,3,2,1))
-  old_par <- par(no.readonly = TRUE)
-  par(mgp = c(3, 0.25, 0)) # moving x-axis labels up a bit
-  
-  ## Get started
-  bp <- barplot(t(m_fixed_ord),
-                beside=TRUE,
-                space = c(0.2, 1),
-                ylim=c(0, 100),
-                col = rep(cols, each=m),
-                names.arg = rep(1:m, n_dep),
-                cex.names=0.7, axes=FALSE)
-  # Emotion labels
-  em_m <- colMeans(bp)
-  for(i in 1:n_dep) text(em_m[i], 98, labels[i], adj=0.5, col=cols[i], cex=0.85)
-  # Restore old par
-  # Axes/labels/etc
-  title(xlab="States", line=1.5)
-  
-  if(ranef){
-  ## Add random effects
-  # REs are available only for means
-  if(indpar==1) {
-    
-    N_disp <- if (is.null(subject)) 1:N else subject
-    for(i in 1:n_dep) {
-      if(line){
-      # Plot lines between dots
-      for(s in 1:(m-1)) {
-        segments(x0 = bp[s, i],
-                 y0 = a_REs_ord[i, s, N_disp],
-                 x1 = bp[s+1, i],
-                 y1 = a_REs_ord[i, s+1, N_disp], col=alpha("grey", alpha=0.75), lwd=0.5)
-      }
-      }
-      
-      # Plot those dots
-      for(s in 1:m) points(rep(bp[s, i], length(N_disp)), a_REs_ord[i, s, N_disp],
-                           col="black", bg=cols[i], pch=21, cex=0.5)
-      
-    } # end for: vars
-  } # end if: means?
-  }
-  
-  par(old_par)
-  axis(2, las=2, seq(0, 100, length=6), at=seq(0, 1, length=6))
-}
-
-# --------------------------------------------------------
-# ---------- Heatplot [for Transition Matrices] ----------
-# --------------------------------------------------------
-
-PlotHeat <- function(phi,
-                     k,
-                     main="",
-                     labels=NULL,
-                     las.x=1,
-                     cex.axis=1.5,
-                     cex.from = 1.5,
-                     cex.to=1.5,
-                     cex.val=1) {
-  
-  
-  # Save the current par settings
-  old_par <- par(no.readonly = TRUE)
-  
-  # -- Aux Variables --
-  p <- ncol(phi)
-  
-  # -- Make color gradient --
-  color.gradient <- function(x, colors=c("#E41A1C", "white", "#377EB8"), colsteps=201) {
-    return( grDevices::colorRampPalette(colors) (colsteps) [ findInterval(x, seq(min(x),max(x), length.out=colsteps)) ] )
-  }
-  x <- 1:201
-  grad <- color.gradient(x)
-  
-  # Make canvas
-  par(mar=c(2,2.5,2.5,1)*2)
-  plot.new()
-  plot.window(xlim=c(0,1), ylim=c(0, 1))
-  
-  # Auxiliary plotting variables
-  sfm <- 1/(p*2)
-  seq_mp_x <- seq(0, 1, length=p+1)[-(p+1)] + sfm
-  
-  # Plot Axes & Axis labels
-  # xy_labels <- paste0("S ", 1:p)
-  # Adjust mgp for custom axis labels
-  par(mgp = c(3, 0.35, 0))  # Move tick labels closer to the plot
-  
-  y_labels <- sapply(p:1, function(i) as.expression(bquote(S[.(i)])))
-  x_labels <- sapply(1:p, function(i) as.expression(bquote(S[.(i)])))
-  
-  axis(3, labels = x_labels, at=seq_mp_x, cex.axis=cex.axis, tick=FALSE)
-  axis(2, labels = y_labels, at=seq_mp_x, las=2, cex.axis=cex.axis, tick=FALSE)
-  title(main, font.main=1)
-  
-  title(ylab="From", cex.lab=cex.from, line=2)
-  mtext("To", side=3, cex=cex.to, line=2)
-  
-  phi_col <- matrix(NA, p, p)
-  
-  # Plot Data
-  for(i in 1:p) {
-    for(j in 1:p) {
-      
-      # Get color
-      phi_ij <- phi[p:1, ][j, i]
-      if(phi_ij < -1) {
-        col_ij <- grad[1]
-      } else if(phi_ij > 1 ) {
-        col_ij <- grad[201]
-      } else {
-        col_ij <- grad[phi[p:1, ][j, i] * 100 + 101]
-        phi_col[j,i] <- col_ij
-      }
-      
-      # Plot box
-      rect(xleft = seq_mp_x[i]-sfm,
-           ybottom = seq_mp_x[j]-sfm,
-           xright = seq_mp_x[i]+sfm,
-           ytop = seq_mp_x[j]+sfm,
-           col = col_ij)
-      # Plot text
-      text(seq_mp_x[i], seq_mp_x[j], round(phi_ij , 2), cex=cex.val, col="black")
-    }
-  }
-  
-  # Reset par settings back to original
-  par(mgp = c(3, 1, 0))
-  
-  
-  # Return colors
-  return(phi_col)
-  
-} # eoF
-
-# --------------------------------------------------------
 # ---------- Compute Gelman-Ruben Statistic --------------
 # --------------------------------------------------------
 
@@ -316,20 +133,112 @@ f_GR <- function(model_list, digits=2, burnin=NULL) {
   
 } # eoF
 
+## Function to detect label switching using trace plots
+plot_label_switching <- function(model, # output of `mHMM()`
+                                 subject, # vector of subjects to plot
+                                 vrb = NULL # optional vector of variable names
+){
+  dep_labels <- model$input$dep_labels
+  if(is.null(vrb)){
+    vrb <- dep_labels
+  }
+  dep_index <- which(dep_labels %in% vrb)
+  m <- model$input$m
+  n_dep <- model$input$n_dep
+  mcmc_samps <- lapply(model$PD_subj[subject], "[[", "cont_emiss")
+  mcmc_samps <- lapply(mcmc_samps, as.data.frame) %>%
+    dplyr::bind_rows(.id = "subj") %>%
+    dplyr::mutate(subj = factor(.data$subj, labels = subject)) %>%
+    dplyr::group_by(.data$subj) %>%
+    dplyr::mutate(iter = 1:(dplyr::n())) %>%
+    dplyr::ungroup()
+  mcmc_long <- mcmc_samps %>%
+    dplyr::select(subj, iter, ends_with("mu")) %>%
+    tidyr::pivot_longer(-c(subj, iter),
+                        names_to = c("dep", "state"),
+                        values_to = c("mu"),
+                        names_pattern = "dep(\\d+)_S(\\d+)_mu") %>%
+    dplyr::filter(dep %in% dep_index)
+  gg <- mcmc_long %>%
+    dplyr::mutate(dep = factor(.data$dep, levels = 1:n_dep, labels = dep_labels),
+                  state = factor(.data$state, levels = 1:m, labels = paste("State", 1:m))) %>%
+    ggplot2::ggplot(ggplot2::aes(x = iter, y = mu, color = state)) +
+    ggplot2::geom_line() +
+    ggplot2::facet_grid(cols = vars(.data$dep), rows = vars(.data$subj)) +
+    ggplot2::scale_color_manual(values = c("#E69F00", "#0072B2", "#CC79A7")) +
+    ggplot2::theme_bw()
+  return(gg)
+}
+
+# --------------------------------------------------------
+# ---------- Extract Transition Estimates & Plot ---------
+# --------------------------------------------------------
+
+PlotTrans <- function(model,
+                      subject = NULL) # number of random effects shown in the figure
+  
+{
+  n_dep <- model$input$n_dep
+  N <- model$input$n_subj
+  m <- model$input$m
+  if(is.null(subject)) {
+    subject <- 1:N
+  }
+  # ------ Getting the Parameters ------
+  ## Fixed Effects
+  gamma_group <- obtain_gamma(model)
+  ## Random Effects
+  gamma_subj <- obtain_gamma(model, level = "subject")
+  a_gamma <- array(NA, dim=c(m, m, N))
+  for(i in 1:N) a_gamma[, , i] <- gamma_subj[[i]]
+  
+  # ------ Plotting ------
+  
+  ### Right Panel: Barplot with Random effects
+  # Generate x_labels
+  v_labels <- rep(NA, m^2)
+  cnt <- 1
+  for(m1 in 1:m) for(m2 in 1:m) {
+    v_labels[cnt] <- paste0("S", m1, " to ", "S", m2)
+    cnt <- cnt+1
+  }
+  
+  # Barplot
+  par(mar=c(4.5,3,3,1))
+  bp <- barplot(as.numeric(t(gamma_group)),
+                ylim=c(0, 1),
+                # names.arg = v_labels,
+                cex.names=0.7, axes=FALSE)
+  axis(1, v_labels, las=2, at=bp)
+  axis(2, las=2)
+  
+  # Add Random Effects
+  cnt <- 1
+  for(m1 in 1:m) {
+    for(m2 in 1:m) {
+      points(rep(bp[cnt], length(subject)), a_gamma[m1, m2, subject],
+             pch=21, col="black",, cex=0.75)
+      cnt <- cnt + 1
+    }
+  }
+} # eoF
+
 # --------------------------------------------------------
 # ---------- Functions to Compute Pseudo-Residuals -------
 # --------------------------------------------------------
 
 GetResid <- function(data, # empirical data
                      model, # fitted mHMM model object
-                     j, # Desired variable
-                     i # Desired subject
+                     vrb, # Desired variable
+                     subject # Desired subject
 ) {
   
   # Aux
   v_subj_id <- unique(data$subj_id)
   labels <- model$input$dep_labels
-  # --- Emission Distributions ---
+  j <- which(labels == vrb)
+  i <- subject
+  # --- Emission Distributions -S--
   emiss_subject <- obtain_emiss(model, level = "subject") # For all
   mu_ji <- emiss_subject[[labels[j]]][[i]][, 1] # For specified variable & subject; col=1 for means
   
@@ -366,7 +275,8 @@ GetResid <- function(data, # empirical data
 # ---------- Functions Visualize Pseudo-Residuals --------
 # --------------------------------------------------------
 
-PlotRes <- function(res_ji, layout=TRUE) {
+# serves as input for PlotRes (i.e. the right panel)
+PlotRes_right <- function(res_ji, layout=TRUE) {
   # Compute AR
   ar_ji <- round(acf(res_ji$resid, plot = FALSE, na.action = na.pass)$acf[2], 3)
   # Fit linear trend
@@ -405,3 +315,61 @@ PlotRes <- function(res_ji, layout=TRUE) {
   lines(scaled_den, seq(0, 24, length=1000), col="grey") # Not entiresure where those 22 come from
   
 } # eoF
+
+# --------------------------------------------------------
+# ---------- Plotting Labels in into Canvas --------------
+# --------------------------------------------------------
+
+# serves as input for PlotRes
+plotLabel <- function(text, cex=1.4, srt=0, xpos=0.5) {
+  par(mar=rep(0,4))
+  plot.new()
+  plot.window(xlim=c(0,1), ylim=c(0,1))
+  text(xpos, 0.5, text, cex=cex, srt=srt)
+}
+
+# Create plot for pseudoresiduals
+PlotRes <- function(model,
+                    data,
+                    vrb,
+                    subject){
+  dep_labels <- model$input$dep_labels
+  nplot <- length(subject)
+  vrb_index <- which(dep_labels == vrb)
+  lmat <- matrix((nplot+3):(4*nplot+2), nplot, 3, byrow = TRUE)
+  lmat <- rbind(c(1:2, 0), lmat)
+  lmat <- cbind(c(0, 3:(nplot+2)), lmat)
+  lo <- layout(mat = lmat, widths = c(0.15, 1, 1, .3), heights = c(0.15, rep(1, (nplot+1))))
+  # layout.show(lo)
+  n_subj <- length(subject)
+  # Plot Labels
+  plotLabel("Data + Predictions", cex=1.6)
+  plotLabel("Pseudo Residuals", cex=1.6)
+  for(s in subject) plotLabel(paste0("Subject ", s), srt=90)
+  
+  for(s in subject) {
+    
+    # Get predictions, residuals
+    res_1i <- GetResid(data = data, 
+                       model = model,
+                       vrb = vrb, # Variable
+                       subject = s) # This function is in 0_Helpers.R
+    
+    # Plot data + Predictions
+    par(mar=c(4,2,1,1))
+    plot.new()
+    plot.window(xlim=c(0, 600), ylim=c(0,100))
+    axis(1)
+    axis(2, las=2)
+    lines(res_1i$emp, lwd=1.5)
+    lines(res_1i$model, col="orange", lty=2, lwd=1.5)
+    if(s==subject[1]) legend("bottomright", legend=c(paste0("Data ", "'", vrb, "'"), "Prediction"),
+                             text.col=c("black", "orange"), lty=1:2, col=c("black", "orange"),
+                             bty="n")
+    
+    # Plot residuals
+    PlotRes_right(res_1i,
+                  layout = FALSE) # This function is in 0_Helpers.R
+    
+  } # end for: subj
+}

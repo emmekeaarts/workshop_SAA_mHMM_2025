@@ -1,0 +1,244 @@
+---
+title: "Working Script Practical 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Packages
+
+```{r}
+library(mHMMbayes)
+source('./helpers.R')
+```
+
+## Load Data
+
+```{r}
+emotion_data <- readRDS("./data/data_Rowland2020.rds")
+emotion_data <- emotion_data[,c('subj_id', 'dayno', 'beep','happy','relaxed','anxious','depressed')] # only use a subset of variables
+```
+
+```{r}
+emotion_data$subj_id2[1] <- 1
+for(j in 2:nrow(emotion_data)){
+  if(emotion_data$subj_id[j] == emotion_data$subj_id[j-1]){
+    emotion_data$subj_id2[j] <- emotion_data$subj_id2[j-1]
+  } else {
+    emotion_data$subj_id2[j] <- emotion_data$subj_id2[j-1] + 1
+  }
+}
+emotion_data$subj_id <- emotion_data$subj_id2
+emotion_data <- subset(emotion_data, select = -c(subj_id2))
+```
+
+**Exercise 1**
+
+**A.** Inspect the first few rows of the emotion data.
+```{r}
+
+```
+
+**B.** Inspect the data over time using visualization. Most useful is visualizing time sequences for subjects separately, e.g., by using the option `facet_wrap(vars(subj_id))` in ggplot, or density plots.
+
+```{r, warning = FALSE, message = FALSE}
+library(ggplot2)
+
+emotion_data$beep2 <- (emotion_data$dayno - 1) * 6 + emotion_data$beep # add a beep number
+
+# Create a long format data frame for ggplot
+ggplot_emotion <- rbind(data.frame(ID = emotion_data$subj_id, 
+                                 beep2 = emotion_data$beep2, 
+                                 outcome = emotion_data$happy,
+                                 emotion = "happy"),
+                      data.frame(ID = emotion_data$subj_id, 
+                                 beep2 = emotion_data$beep2, 
+                                 outcome = emotion_data$relaxed,
+                                 emotion = "relaxed"),
+                      data.frame(ID = emotion_data$subj_id, 
+                                 beep2 = emotion_data$beep2, 
+                                 outcome = emotion_data$anxious,
+                                 emotion = "anxious"),
+                      data.frame(ID = emotion_data$subj_id, 
+                                 beep2 = emotion_data$beep2, 
+                                 outcome = emotion_data$depressed,
+                                 emotion = "depressed"))
+
+ggplot_emotion$emotion <- factor(ggplot_emotion$emotion, levels = c("happy", "relaxed", "anxious", "depressed")) # turn the emotion variable into a factor
+
+ggplot(ggplot_emotion[ggplot_emotion$ID %in% c(1:5),]) + # only plot the first 5 subjects
+  geom_line(mapping = aes(x = beep2, y = outcome, color = emotion)) + # line plot for time series (different colors for each emotion)
+  facet_wrap(vars(ID), ncol = 1) + # plot separate panels for different subjects
+  scale_color_manual(values = c("happy" = "darkgreen", "relaxed" = "lightgreen", "anxious" = "darkred", "depressed" = "red")) # color palette
+
+ggplot(ggplot_emotion, aes(x = outcome)) +
+  geom_density() +
+  facet_wrap(~emotion) # plot separate panels for different emotions
+```
+
+## Missing Data and Night Gap
+
+**Exercise 2**
+Use the `insert_nightgap()` helper function to insert 8 rows of missing values for each subject for each night gap. Call the new dataset `emotion_nightgap`.
+
+```{r}
+emotion_nightgap <- insert_nightgap(data = emotion_data, # make sure the first column contains the subject IDs, and the second column contains the day numbers
+                                    beeps_per_night = 8, # we want to insert 8 beeps for each night
+                                    col_id = 1, # the first column contains the subject IDs
+                                    col_day = 2 # the second column contains the day numbers
+                                    )
+```
+
+## Setting Up the Multilevel Hidden Markov Model
+
+**Exercise 3**
+Create a dataset `emotion_mHMM` which has the subject ID variable in the first column, followed by only the affective variables you want to use in the hidden Markov model. 
+
+```{r}
+
+```
+
+### Starting Values
+
+**Exercise 4**
+
+**A.** Explore the data to determine starting values for the emission distributions.
+
+```{r}
+# Determine observed range
+apply(emotion_mHMM[, 2:5], 2, range, na.rm = TRUE) # observed range is from 0 to 100 for all variables
+
+apply(emotion_mHMM[, 2:5], 2, function(x){
+  x_low <- x[x <= 50] # lower range
+  x_high <- x[x > 50] # larger range
+  c(median(x_low, na.rm = TRUE), median(x_high, na.rm = TRUE))
+})
+
+## The lower proposed starting values for anxious and depressed are quite close to the boundary of 0, so we should bring the starting values for state 1 and 2 closer together for these variables.
+```
+
+**B** Now, use the obtained values to create input for the model to use as starting values. First, set up the model input arguments: `m` for the number of states the model should infer, `n_dep` for the number of dependent variables used for fitting the model, and then the starting values for the emission distribution, saved in the object `start_emiss`. `start_emiss` should be a list with `n_dep` elements. Each element within the list should be a matrix with 2 columns and `m` rows. The means are contained in the first column of this matrix, and the standard deviations are contained in the second column of the matrix.
+
+```{r}
+# setting up input parameters
+m <- 2
+n_dep <- 4
+
+start_emiss <- list(matrix(c(..., ...,                                     # happy
+                             ..., ...), byrow = TRUE, ncol = 2, nrow = m),
+                    ...,                                     # relaxed,
+                    ...,                                     # anxious 
+                    ...                                     # depressed)
+```
+
+**C.** Set up the starting values for the transition probabilities in the object `start_gamma` using the starter code below.
+
+```{r}
+start_gamma <- matrix(c(..., ...,
+                        ..., ...), byrow = TRUE, ncol = m, nrow = m)
+```
+
+### Specifying Priors
+
+**Exercise 5**
+Use the `help()` function to inspect the function `prior_emiss_cont()` and its arguments.
+
+```{r}
+
+```
+
+**Exercise 6**
+Set up a weakly informative prior for the continuous emission distribution using the function `prior_emiss_cont()` and save the object in `emotion_prior_emiss`. Keep the above considerations in mind. You will only have to fill in the dots below.
+
+```{r}
+# specifying weakly informative prior for continuous emission distributions
+
+emotion_prior_emiss <- prior_emiss_cont(
+  gen = list(m = m, n_dep = n_dep),
+  emiss_mu0 = list(...,  # happy
+                   ...,  # relaxed
+                   ...,  # anxious
+                  ...),  # depressed
+  emiss_K0 = ...,
+  emiss_V = ...,
+  emiss_nu = ...,
+  emiss_a0 = ...,
+  emiss_b0 = ...,
+)
+```
+
+## Fitting the Multilevel Hidden Markov Model
+
+**Exercise 7**
+Fit a 2 state multilevel hidden Markov model using the function `mHMM()`, and save your fitted model in an object named `out_2st_emotion`. See below for the general structure of the `mHMM()` function, you only have to fill in the dots. The provided code assumes continuous observations, no level 2 covariates and only a prior on the Normal emission distribution.
+
+```{r}
+# Run a model without covariate(s) and default priors:
+set.seed(...) ## choose a seed for reproducibility
+out_2st_emotion <- mHMM(s_data = ...,
+                data_distr = "continuous",
+                gen = list(m = ..., n_dep = ...),
+                start_val = ...,
+                mcmc = list(J = 500, burn_in = 200))
+```
+
+## Inspecting general model output 
+
+**Exercise 8**
+Inspect the global output by using the inbuilt `print()` and `summary()` options for a class `mHMM` object created by using the function `mHMM()` within the `mHMMbayes` package. How many subjects were included in the analysis? On average, do students remain within one and the same state for a long time? What mood do each of the states represent?
+
+```{r}
+
+```
+
+**Exercise 9**
+Save the group level transition probabilities gamma in an object named `gamma_group`, and the group level emission distribution parameters in an object named `emiss_group`, using the functions `obtain_gamma()` and `obtain_emiss()`, respectively. Inspect the objects.
+
+```{r}
+
+```
+
+## Visualizing the Obtained Output
+
+Load the *ggmHMM* package
+```{r}
+devtools::install_github("pepijnvink/ggmHMM") # for visualizations using ggplot2
+library(ggmHMM)
+```
+
+**Exercise 10**
+Visualize the group level transition probabilities gamma using a heatmap. You can use the `ggmHMM` function `plot_gamma()`.
+
+```{r}
+plot_gamma(model = gamma_group) # provide either a model object made with `mHMM()` or a transition matrix obtained with `obtain_gamma()`
+```
+
+**Exercise 11**
+Visualize the group level emission distributions. Various visualizations are possible, for example bar plots depicting the emission distribution means over states and dependent variables (ussing the *ggmHMM* function `plot_emiss()`), or depicting the densities of the normal emission distributions (using the helper function `plot_density()`), combining information on both the mean and standard deviation.
+
+```{r}
+# Bar chart using the ggmHMM package
+plot_emiss(model = out_2st_emotion, subject_effects = FALSE) # bar chart
+
+# density plot using the helper function
+plot_dens(model = out_2st_emotion) # density plot
+```
+
+## Obtaining the most likely sequence of hidden states
+
+**Exercise 12**
+Using the function `vit_mHMM()`, the object `out_2st_emotion` containing our fitted multilevel HMM model, and the data `emotion_mHMM`, obtain the most likely hidden state sequence. Save the state sequences in the object `emotion_states_2st`, and inspect the object.
+
+```{r}
+
+```
+
+**Exercise 13**
+Use the *ggmHMM* function `plot_viterbi()` to plot the inferred state sequence over a time for a selection of the subjects within the data.
+
+```{r}
+
+```
+
