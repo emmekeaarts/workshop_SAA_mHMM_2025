@@ -23,11 +23,11 @@ library(ggplot2)
 <div style = "float: left; width: 60%;">
 Uniquely suited to provide detailed information on psychological and behavioral processes over time at the within-person level 
 
-- Daily Diary
-- Ecological momentary assessment (EMA)
-- Experience sampling method (ESM)
-- Ambulatory assessments (AA)
-- Sensors
+> - Daily Diary
+> - Ecological momentary assessment (EMA)
+> - Experience sampling method (ESM)
+> - Ambulatory assessments (AA)
+> - Sensors
 
 publications using ILD increased from ~250 to >2.500 between 2000 and 2023 (PubMed)
 </div>
@@ -35,7 +35,7 @@ publications using ILD increased from ~250 to >2.500 between 2000 and 2023 (PubM
 <div align="left">
 <br>
 <br>
-<img src="./figures/ESM_noun.png" width=300>
+<img src="./figures1/ESM_noun.png" width=300>
 </div>
 </div>
 
@@ -56,7 +56,7 @@ Example: emotion regulation.
 
 <div style = "float: right; width: 50%;">
 <div align="left">
-<img src="./figures/VAR example.png" width=400><br>
+<img src="./figures1/VAR example.png" width=400><br>
 <font size="2">McNeish & Hamaker, 2019. </font> 
 </div>
 </div>
@@ -71,7 +71,7 @@ Conceptual framework: e.g., dynamical systems that switch between a number of eq
 Example: depression, bipolar disorder, ... . 
 
 <div align="center">
-<img src="./figures/Dynamical system example.png" width=700><br>
+<img src="./figures1/Dynamical system example.png" width=700><br>
 <font size="2">Helmich et al., 2024 </font> 
 </div>
 
@@ -81,21 +81,24 @@ Example: depression, bipolar disorder, ... .
 Empirical data underline $\rightarrow$ a single equilibrium point does not always provide appropriate reflection of the data: 
 
 - multimodality detected in weekly symptom data (Hosenfeld et al., 2015). 
-- multimodality and skewness frequently detected in EMA emotion measurements  
-    - Haslbeck et al., 2022: 14%–40% across studies exhibited a unimodal symmetric distribution.
+- multimodality, skewness, and "pointmass" at scale end frequently detected in EMA emotion measurements   (Haslbeck et al., 2022) 
+
+<div align="center">
+<br>
+<img src="./figures1/multi_modality_example.png" width=800>
+</div>
 
 
+## Modeling (latent) state dynamics
 
-## Theory driven preference for HMMs
+Advantages of modeling a process that switches between multiple (latent) categorical states:
 
-Advantages of modelling a process that switches between multiple (latent) categorical states:
-
-- quantify the dynamics over time  
-    - probability of staying in same mood state  
-        - e.g., high durations of a depressed mood state
-    - if one exits a mood state, which mood state is the individual likely to switch to next? 
-- empirically derived composition of (mood) states
-- derive the most likely sequence of (mood) states over time for each individual
+- Quantify the dynamics over time:  
+    - Probability of remaining in same mood state from one time point to the next 
+        - e.g., duration of a depressed mood state
+    - Which mood state is an individual likely to transition to if they switch?
+- Empirically derived composition of (mood) states.
+- Derive the most likely sequence of mood states for each individual over time.
 
 
 ---
@@ -116,7 +119,7 @@ Advantages of modelling a process that switches between multiple (latent) catego
 
 <div align="center">
 <br>
-<img src="./figures/CAB data.png" width=950>
+<img src="./figures1/CAB data.png" width=950>
 </div>
 
 - 26 patients, 60 observations per patient per CAB factor
@@ -126,7 +129,32 @@ Advantages of modelling a process that switches between multiple (latent) catego
 <div align="center">
 <br>
 <br>
-<img src="./figures/CAB distributions.png" width=900>
+<img src="./figures1/CAB density all.png" width=900>
+</div>
+
+## Capturing crisis dynamics using ESM data
+
+<div align="center">
+<br>
+<br>
+<img src="./figures1/CAB_density_s4.png" width=900>
+</div>
+
+## Capturing crisis dynamics using ESM data
+
+<div align="center">
+<br>
+<br>
+<img src="./figures1/CAB_density_s5.png" width=900>
+</div>
+
+
+## Capturing crisis dynamics using ESM data
+
+<div align="center">
+<br>
+<br>
+<img src="./figures1/CAB_density_s7.png" width=900>
 </div>
 
 
@@ -135,7 +163,7 @@ Advantages of modelling a process that switches between multiple (latent) catego
 In the empirical example on suicidal crisis states: 
 
 - How long does someone tend to stay in a low or high suicidal crisis state? 
-- If one exits a low suicicidal crisis state, does someone tend to switch directly to the highest suicidal crisis state, or (first) to an intermediate crisis state? 
+- From the low suicidal crisis state, does someone tend to switch directly to the highest suicidal crisis state, or (first) to an intermediate crisis state? 
 - What is the composition of the empirically derived suicidal crisis states?  
     - e.g., what makes a state a high crisis state or a low crisis state? 
 - What is the sequence of suicidal crisis states over time for each individual? 
@@ -144,30 +172,39 @@ In the empirical example on suicidal crisis states:
 ## The hidden Markov model {.smaller}
 
 <div align="center">
-<img src="./figures/HMM illustration_stats CAB.png" width=1000>
+<img src="./figures1/HMM illustration_stats CAB_only_state_seq.png" width=1000>
 </div>
 
 HMM: probabilistic model to infer hidden states $S_t \in (1, 2, ..., m)$ at 
 
 - each time point $t = 1, 2, ..., T$ 
-- from the observed series $(y_{k1}, y_{k2}, ..., y_{kT})$ 
-- for dependent variable $k = 1, 2, ..., K$
+- we assume sequence of hidden states forms a Markov chain: $P(S_{t_1} | S_t, S_{t-1}, ..., S_1 = P(S_{t+1} | S_t)$ $\rightarrow$ the probability of the next state depends only on the current state
+
 
 ## The hidden Markov model {.smaller}
 
 <div align="center">
-<img src="./figures/HMM illustration_stats CAB.png" width=1000>
+<img src="./figures1/HMM illustration_stats CAB_no_TPM.png" width=1000>
 </div>
 
-We assume:
+Probability of the hidden states at each point in time are inferred using:
 
-- observation $y_{kt}$ is generated by an underlying, latent state $S_t$, 
-- sequence of hidden states $\{S_t : t = 1, 2, ..., T\}$ forms a Markov chain: probability of switching to the next state $S_{t+1}$ only depends on the current state $S_t$: $P(S_{t_1} | S_t, S_{t-1}, ..., S_1 = P(S_{t+1} | S_t)$
+- the multivariate observed series $(y_{k1}, y_{k2}, ..., y_{kT}; k \in 1, 2, ..., K)$ 
+- we assume each observation $y_{kt}$ is generated by an underlying, latent state $S_t$ 
 
 ## The hidden Markov model {.smaller}
 
 <div align="center">
-<img src="./figures/HMM illustration_stats CAB.png" width=1000>
+<img src="./figures1/HMM illustration_stats CAB_no_TPM.png" width=1000>
+</div>
+
+
+Two sets of parameters: 
+
+## The hidden Markov model {.smaller}
+
+<div align="center">
+<img src="./figures1/HMM illustration_stats CAB.png" width=1000>
 </div>
 
 
@@ -180,7 +217,7 @@ Two sets of parameters:
 ## The hidden Markov model {.smaller}
 
 <div align="center">
-<img src="./figures/HMM illustration_stats CAB.png" width=1000>
+<img src="./figures1/HMM illustration_stats CAB.png" width=1000>
 </div>
 
 Given example data, assume 
@@ -194,26 +231,26 @@ Given example data, assume
 <div align="center">
 <br>
 <br>
-<img src="./figures/CAB composition - group only.png" width=850>
+<img src="./figures1/CAB composition - group only.png" width=850>
 </div>
 
 ## CAB crisis state dynamics 
 
 <div align="center">
 <br>
-<img src="./figures/CAB state dynamics network V3 - group only.png" width=500>
+<img src="./figures1/CAB state dynamics network V3 - group only.png" width=500>
 </div>
 
 ## Personalized crisis trajectories 
 
 <div align="center">
 <br>
-<img src="./figures/Cab trajectories selected.png" width=850>
+<img src="./figures1/Cab trajectories selected.png" width=850>
 </div>
 
 ## Capturing crisis dynamics -- conclusion 
 
-Pairing fine grained ESM data with multilevel HMM, we
+Pairing fine grained ESM data with (multilevel) HMM, we
 
 - Identified four distinct and ascending CAB based crisis states
 - Quantified the dynamics of crisis at the group level 
@@ -254,7 +291,7 @@ Advantages:
 - Bayesian methods yield many additional metrics, such as standard errors and credibility intervals.
 - Relatively easy to handle missing data (assuming MAR).
 - Allows incorporation of prior knowledge (through prior distribution), accommodates smaller sample sizes. 
-- Adds flexibility, making it relatively easy to extent to more complex models. 
+- Adds flexibility, making it relatively easy to extend to more complex models. 
 
 ## mHMMbayes - Bayesian estimation 
 
@@ -272,7 +309,7 @@ Disadvantages:
 
 <div align="center">
 <br>
-<img src="./figures/CAB data.png" width=950>
+<img src="./figures1/CAB data.png" width=950>
 </div>
 
 26 patients, 60 observations per patient per CAB factor
@@ -302,12 +339,12 @@ out_4st
 library(mHMMbayes)
 
 # Run a model without covariate(s) and default prior for gamma:
-out_4st <- mHMM(s_data          = CAB_mHMM,
-                data_distr      = "continuous",
-                gen             = list(...),
-                start_val       = list(...),
-                emiss_hyp_prior = ...,
-                mcmc            = list(J = J, burn_in = burn_in))
+out_4st <- mHMM(s_data          = CAB_mHMM,           # Data to be used
+                data_distr      = "continuous",       # Type of emission distribution
+                gen             = list(...),          # General model properties
+                start_val       = list(...),          # Starting values
+                emiss_hyp_prior = ...,                # Parameter values of prior distributions
+                mcmc            = list(J = J, burn_in = burn_in)) # MCMC settings
 
 ```
 
@@ -415,7 +452,7 @@ Starting values for the (Gaussian) emission distribution
 
 <div align="center">
 <br>
-<img src="./figures/quantiles CAB factors.png" width=950>
+<img src="./figures1/quantiles CAB factors.png" width=950>
 </div>
 
 ## Fitting a multilevel HMM -- starting values  
@@ -457,17 +494,22 @@ Specified using the function `prior_emiss_cont()`:
 
 prior_emiss_cont(
   gen,              # general model properties m and n_dep
+  
+  # State means
   emiss_mu0,        # hyper-prior mean values of the Normal emission distribution 
   emiss_K0,         # number of hypothetical subjects emiss_mu0 is based on
+  
+  # Variance between individuals in state means
   emiss_V,          # degrees of freedom inverse Gamma hyper-prior on BETWEEN subject variance 
   emiss_nu,         # hyper-prior variance of Inverse Gamma on BETWEEN subject variance 
+  
+  # Variance within a state within individuals
   emiss_a0,         # shape values of IG hyper-prior on emission standard deviation^2 
   emiss_b0,         # rate values of IG hyper-prior on emission standard deviation^2 
 )
 
 ```
 
-Most abstract is probably to specify emiss_a0 and emiss_b0 who determine the IG hyper-prior on the emission standard deviation$^2$
 
 ## More on IG hyper-prior on emission $\sigma^2$
 
@@ -576,10 +618,15 @@ https://github.com/emmekeaarts/workshop_SAA_mHMM_2025
 
 ## References 
 
-- <font size="3">J. Haslbeck, O. Ryan, & F. Dablander (2023). Multimodality and skewness in emotion time series. Emotion, 23(8), 2117–2141.  Doi: 10.1037/emo0001218 </font>
-- <font size="3">W. W. Hale III, & **E. Aarts** (2023). Hidden Markov model detection of interpersonal interaction dynamics in predicting patient depression improvement in psychotherapy: Proof-of-concept study. Journal of Affective Disorders Reports, 14, 100635. Doi: 10.1016/j.jadr.2023.100635 </font>
-- <font size="3">S. Mildiner Moraga, F.M. Bos, B. Doornbos, R. Bruggeman, L. van der Krieke, E. Snippe, **E. Aarts** (2022). Evidence for severe mood instability in patients with bipolar disorder: Applying multilevel hiden Markov modelling to intensive longitudinal ecological momentary assessment data. PsyArXiv preprint. Doi: 10.31234/osf.io/egp82 </font>
-- <font size="3">Mildiner Moraga, S., & **Aarts, E.** (2023). Go Multivariate: Recommendations on Bayesian Multilevel Hidden Markov Models with Categorical Data. Multivariate Behavioral Research, 1-29. Doi: 10.1080/00273171.2023.2205392 </font>
+>- <font size="3"> Aarts, E., Montagne, B., van der Meer, T. J., & Hagenaars, M. A. (2025). Capturing crisis dynamics: a novel personalized approach using multilevel hidden Markov modeling. *Frontiers in Psychiatry*, 15, 1501911. [Doi: 10.3389/fpsyt.2024.1501911](https://doi.org/10.3389/fpsyt.2024.1501911). </font>
+
+>- <font size="3">Haslbeck, J., Ryan, O., & Dablander, F. (2023). Multimodality and skewness in emotion time series. *Emotion*, 23(8), 2117. [Doi: 10.1037/emo0001218](https://doi.org/10.1037/emo0001218). </font>
+
+>- <font size="3"> Helmich, M. A., Schreuder, M. J., Bringmann, L. F., Riese, H., Snippe, E., & Smit, A. C. (2024). Slow down and be critical before using early warning signals in psychopathology. *Nature Reviews Psychology*, 3(11), 767-780. [Doi: 10.1038/s44159-024-00369-y](https://doi.org/10.1038/s44159-024-00369-y).  </font>
+
+>- <font size="3"> Hosenfeld, B., Bos, E. H., Wardenaar, K. J., Conradi, H. J., van der Maas, H. L., Visser, I., & de Jonge, P. (2015). Major depressive disorder as a nonlinear dynamic system: bimodality in the frequency distribution of depressive symptoms over time. *BMC psychiatry*, 15, 1-9.[Doi: 10.1186/s12888-015-0596-5](https://doi.org/10.1186/s12888-015-0596-5).  </font>
+
+>- <font size="3"> McNeish, D., & Hamaker, E. L. (2020). A primer on two-level dynamic structural equation models for intensive longitudinal data in Mplus. *Psychological methods*, 25(5), 610. [Doi: 10.1037/met0000250](https://doi.org/10.1037/met0000250).</font>
 
 ## Note: specifying (weakly) informative-priors -- gamma
 
@@ -598,6 +645,7 @@ prob_to_int(
   prob_matrix         # complete transition probability matrix gamma
 )
 ```
+
 
 ## mHMMbayes - Metropolis within Gibbs sampler
 
