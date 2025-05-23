@@ -50,7 +50,8 @@ install.packages(c("ggplot2", "mHMMbayes"))
 | 15:45 | 15       | Break        |                                                                 |      |
 | 16:00 | 45       | Lecture      | Model selection and fit + subject level parameters  | [`More_advanced.hmtl`](./lectures/02_More_advanced/More_advanced.html) |
 | 16:45 | 45       | Practical    | Model selection and fit + subject level parameters  | [`More_advanced_pract.html`](./practicals/02_more_advanced/More_advanced_pract.html) |
-| 17:30 | 30       | Conclusion   | Final points + questions                                        |  [`Final_points.html`](./lectures/03_final_points/Final_points.html)    |
+| 17:30 | 30       | Conclusion   | Final notes + questions                                        |  [`Final_points.html`](./lectures/03_final_points/Final_points.html)    |
+
 
 
 ## Additional links
