@@ -48,9 +48,9 @@ emotion_mHMM <- emotion_nightgap[,c('subj_id', 'happy', 'relaxed', 'anxious', 'd
 
 **Note.** We have a working script prepared for you to put your answers in, called "Working Script Practical 2.Rmd.
 
-This is the second practical, we will dive into more advanced matters: model selection, subject specific parameters, covariates, and model fit. We continue with the same dataset: the open access dataset from Rowland and Wenzel (2020), using the subset of the affective experiences *happy*, *relaxed*, *anxious*, and *depressed*, measured six times a day for 40 days in total. 
+This is the second practical, we will dive into more advanced matters: model selection, subject specific parameters, model diagnostics, and model fit. Note that we cover a lot of ground here, most likely too much to finish within this practical. All parts are modular, so you are invited to work on what interests you most. We continue with the same dataset: the open access dataset from Rowland and Wenzel (2020), using the subset of the affective experiences *happy*, *relaxed*, *anxious*, and *depressed*, measured six times a day for 40 days in total. 
 
-The answers to the practicals are available in the `*_answers.html` files. Try to work out the answer yourself (e.g., inspecting help files and examples in them provided in the `mHMMbayes` package, looking at the tutorial vignette available online) before looking at this!
+The answers to the practicals are available in the `*_answers.html` files.
 
 In all practicals in this workshop, we make use of the `mHMMbayes` package, version 1.1.0. You can load the package like 
 
@@ -146,7 +146,7 @@ To develop an intuition on how much the transition probabilities vary over subje
 **Exercise 5**
 Plot (a subset of) the subject specific transition probabilities, and investigate how much the transition probabilities differ over subjects. This can be done in 2 ways:
 
-* With the helper function `PlotTrans()`, a barplot may be plotted showing the group level effects, with points for the subject-specific effects (ore a subset thereof). It uses the following arguments:
+* With the helper function `PlotTrans()`, a barplot may be plotted showing the group level effects, with points for the subject-specific effects (or a subset thereof). It uses the following arguments:
   + model: a model of class `mHMM`
   + subject: an optional vector of subject to plot subject-specific effects for. If not specified, all subject-specific effects are plotted.
 * With the function `plot_gamma()` from the *ggmHMM* package, a heatmap may be plotted for each subject (or a subset) separately. This can be done by 
@@ -360,8 +360,8 @@ ggplot(AICs, mapping = aes(x = states, y = AIC)) +
 
 As you can see, determining the number of states can be a subjective and tricky endeavor, and depends very much on the data and research question at hand.  
 
-## Model fit
-In this section we will inspect model fit, checking convergence, using posterior predictive checks (PPCs), and evaluating Pseudoresiduals. 
+## Model diagnostics and fit
+In this section we will inspect model diagnostics and fit, checking convergence, label switching, using posterior predictive checks (PPCs), and evaluating Pseudo residuals. 
 
 ### Convergence
 Within any Bayesian analysis, convergence needs to be assessed in order to rule out output resulting from a local (instead of global) maximum. To check this, multiple chains (now we will use 2, but we recommend using at least 4) need to be run, performing the same analysis but using (slightly) different starting values in each chain. Note that in multilevel hidden Markov models, it is important to still keep sensible starting values when varying these. For example, when modelling continuous or count data, we need to keep the same sensible ordering of $\bar{\mu}_i$ or $\bar{\lambda}_i$ given data and process.  Values of the (weakly informative) prior distributions should be fixed over the chains.

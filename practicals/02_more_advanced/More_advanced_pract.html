@@ -1509,16 +1509,16 @@ border-radius: 0px;
 <p><strong>Note.</strong> We have a working script prepared for you to
 put your answers in, called “Working Script Practical 2.Rmd.</p>
 <p>This is the second practical, we will dive into more advanced
-matters: model selection, subject specific parameters, covariates, and
-model fit. We continue with the same dataset: the open access dataset
-from Rowland and Wenzel (2020), using the subset of the affective
-experiences <em>happy</em>, <em>relaxed</em>, <em>anxious</em>, and
+matters: model selection, subject specific parameters, model
+diagnostics, and model fit. Note that we cover a lot of ground here,
+most likely too much to finish within this practical. All parts are
+modular, so you are invited to work on what interests you most. We
+continue with the same dataset: the open access dataset from Rowland and
+Wenzel (2020), using the subset of the affective experiences
+<em>happy</em>, <em>relaxed</em>, <em>anxious</em>, and
 <em>depressed</em>, measured six times a day for 40 days in total.</p>
 <p>The answers to the practicals are available in the
-<code>*_answers.html</code> files. Try to work out the answer yourself
-(e.g., inspecting help files and examples in them provided in the
-<code>mHMMbayes</code> package, looking at the tutorial vignette
-available online) before looking at this!</p>
+<code>*_answers.html</code> files.</p>
 <p>In all practicals in this workshop, we make use of the
 <code>mHMMbayes</code> package, version 1.1.0. You can load the package
 like</p>
@@ -1621,7 +1621,7 @@ probabilities differ over subjects. This can be done in 2 ways:</p>
 <ul>
 <li>With the helper function <code>PlotTrans()</code>, a barplot may be
 plotted showing the group level effects, with points for the
-subject-specific effects (ore a subset thereof). It uses the following
+subject-specific effects (or a subset thereof). It uses the following
 arguments:
 <ul>
 <li>model: a model of class <code>mHMM</code></li>
@@ -1798,11 +1798,11 @@ and tricky endeavor, and depends very much on the data and research
 question at hand.</p>
 </div>
 </div>
-<div id="model-fit" class="section level2">
-<h2>Model fit</h2>
-<p>In this section we will inspect model fit, checking convergence,
-using posterior predictive checks (PPCs), and evaluating
-Pseudoresiduals.</p>
+<div id="model-diagnostics-and-fit" class="section level2">
+<h2>Model diagnostics and fit</h2>
+<p>In this section we will inspect model diagnostics and fit, checking
+convergence, label switching, using posterior predictive checks (PPCs),
+and evaluating Pseudo residuals.</p>
 <div id="convergence" class="section level3">
 <h3>Convergence</h3>
 <p>Within any Bayesian analysis, convergence needs to be assessed in

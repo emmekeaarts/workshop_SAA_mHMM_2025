@@ -95,7 +95,7 @@ Obtain the AIC values of the 2-, 3-, and 4-state model using the `print()` funct
 
 ```
 
-## Model Fit
+## Model Diagnostics and Fit
 ### Convergence
 
 **Exercise 11**
