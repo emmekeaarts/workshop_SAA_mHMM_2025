@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Packages
 
 ```{r}
+if(!requireNamespace("mHMMbayes", quietly = TRUE)) install.packages("mHMMbayes")
 library(mHMMbayes)
 source('./helpers.R')
 ```
