@@ -63,7 +63,7 @@ source('./helpers.R')
 
 ## The data
 
-We will use an open access dataset from Rowland and Wenzel (2020), available on OSF [`here`](https://osf.io/jmz2n/). The data consists of one-hundred twenty-five undergraduate students from the University of Mainz in Germany that completed a 40-day ambulatory assessment six times a day, reporting on their affective experiences *happy*, *excited*, *relaxed*, *satisfied*, *angry*, *anxious*, *depressed*, and *sad*. For this exercise we will only use a subset of the variables, namely *happy*, *relaxed*, *anxious*, and *depressed*. These items were scored with a visual analog slider from 0 to 100. Before the collection of the ESM measurements, participants of the study were randomly assigned to a group receiving a weekly mindfulness treatment during the ESM study and a control group. Here we use an already cleaned version of these data from the reproducibility archive of [Haslbeck, Ryan, & Dablander (2023)](https://psyarxiv.com/qudr6), the repository can be found [`here`](https://github.com/jmbh/EmotionTimeSeries), and the specific dataset we will be working with [`here`](https://github.com/jmbh/EmotionTimeSeries/tree/master/DataClean/Rowland2020). However, you do not have to download anything, we provide their cleaned dataset as an `.rds`.
+We will use an open access dataset from Rowland and Wenzel (2020), available on OSF [`here`](https://osf.io/jmz2n/). The data consists of 125 undergraduate students from the University of Mainz in Germany that completed a 40-day ambulatory assessment six times a day, reporting on their affective experiences *happy*, *excited*, *relaxed*, *satisfied*, *angry*, *anxious*, *depressed*, and *sad*. For this exercise we will only use a subset of the variables, namely *happy*, *relaxed*, *anxious*, and *depressed*. These items were scored with a visual analog slider from 0 to 100. Before the collection of the ESM measurements, participants of the study were randomly assigned to a group receiving a weekly mindfulness treatment during the ESM study and a control group. Here we use an already cleaned version of these data from the reproducibility archive of [Haslbeck, Ryan, & Dablander (2023)](https://psyarxiv.com/qudr6), the repository can be found [`here`](https://github.com/jmbh/EmotionTimeSeries), and the specific dataset we will be working with [`here`](https://github.com/jmbh/EmotionTimeSeries/tree/master/DataClean/Rowland2020). However, you do not have to download anything, we provide their cleaned dataset as an `.rds`.
 
 Please use the following code to load the data file:
 
@@ -141,7 +141,7 @@ ggplot(ggplot_emotion, aes(x = outcome)) +
 
 Like most EMA studies, the our dataset contains missing measurement points for two reasons: The first are unknown reasons during the day that prevent subjects from responding to the survey. To account for the missingness of measurement points in the multilevel HMM analysis, the missingness must be represented as rows of (missing) NA-values in the data matrix. Otherwise, the package assumes that all measurements are consecutive with an equidistant time between them (six measurements within 10h, so 1h 40 min in our case). The *mHMMbayes* package assumes the data are missing at random. This means that the missingness is equally likely in each of the hidden states.
 
-The second reason for missingness is the fact that subjects do not respond during the night when they are asleep. These missed timepoints are not yet represented in our data. If we left the data as they are, the model would assume that the last measurement in the evening of the day and the first measurement in the morning of the next day are 1 hour and 40 minutes apart, which is clearly incorrect. Instead, we insert a number of NA-values for each night gap for the missed measurements. This assumes that the process during the day continues at night. Since the night gap with no measurements taken was 14h, and the average interval between daytime measurements was 1h 40min, we insert eight missing time steps to represent the night-gap (since the beginning and end of the 14 hours are respectfully the last and first measurement of the day).
+The second reason for missingness is the fact that subjects do not respond during the night when they are asleep. These missed timepoints are not yet represented in our data. If we left the data as they are, the model would assume that the last measurement in the evening of the day and the first measurement in the morning of the next day are 1 hour and 40 minutes apart, which is clearly incorrect. Instead, we insert a number of NA-values for each night gap for the missed measurements. This assumes that the process during the day continues at night. Since the night gap with no measurements taken was 14h, and the average interval between daytime measurements was 1h 40min, we insert eight missing time steps to represent the night-gap (since the beginning and end of the 14 hours are the last and first measurement of the day, respectively).
 
 **Exercise 2**
 
@@ -157,9 +157,9 @@ emotion_nightgap <- insert_nightgap(data = emotion_data, # make sure the first c
 
 ## Setting up the multilevel hidden Markov model 
 
-In this section, you will fit a 2-state multilevel hidden Markov model. Note that in an actual analysis we will have to do model selection between models with different number of states. However, here we first get to know the model by assuming that we know the number of states. And will look at model selection in the second practical.
+In this section, you will fit a 2-state multilevel hidden Markov model. Note that in an full empirical analysis we will have to do model selection between models with different number of states. However, here we first get to know the model by assuming that we know the number of states. We will look at model selection in the second practical.
 
-To fit an mHMM with the `mHMMbayes` package, we need a `data.frame` in which only the affective variables we want to use in the model are included, plus the subject ID as the first column.
+To fit an mHMM with the `mHMMbayes` package, we need a `data.frame` including only the variables we would like to model, plus the subject ID as the first column.
 
 ---
 
@@ -176,11 +176,10 @@ emotion_mHMM <- emotion_nightgap[,c('subj_id', 'happy', 'relaxed', 'anxious', 'd
 
 Fitting the mlHMM requires setting starting values for all model parameters. Specifically, we need to provide starting values for the group-level means and standard deviations for each variable in each state, as well as for the transition probabilities. The model needs this information to complete the first pass of the iterative estimation algorithm. Sensible initial values help to avoid label switching in the sampling process and are therefore recommended.
 
-We will start with the specification of starting values of the emission distribution (i.e. the state-specific means and standard deviation). If we assume a 2-state model, for the type of variables we model here, it is plausible to assume that we will have a 'positive' state and a 'negative' state. Define the means of the variable and state specific emission distributions to align with this idea. **Do not use equivalent means for one dependent variable over the states!** Sensible would be to base it on the observed data; we can look at the observed range for each variable, and split the data in 2 in the middle of this range, creating 2 subsets. Within each subset, we can then evaluate the median and use these as starting values. This is the approach we will take. Do, however, make sure that the starting values are not too close to the boundary of the observed range, and that the starting values for each state are not too far apart in relation to the standard deviation.
+We will start with the specification of starting values of the emission distribution (i.e. the state-specific means and standard deviation). If we assume a 2-state model, for the type of variables we model here, it is plausible to assume that we will have a 'positive' state (high positively valenced emotions, low negatively valenced emotions) and a 'negative' state (the other way around). Define the means of the variable and state specific emission distributions to align with this idea. **Do not use the same starting values for means for a dependent variable across states!** A natural approach would be to base starting values on the characteristics of the empirical data; we can look at the observed range for each variable, and split the data in 2 in the middle of this range, creating 2 subsets. Within each subset, we can then evaluate the median and use these as starting values. However, make sure that the starting values are not too close to the boundary of the observed range, and that the starting values for each state are not too far apart in relation to the standard deviation.
 
-Regarding the standard deviations of the emission distribution, define them such that the emission distribution for state 1 and 2 together cover the entire range of observations (remember, participants could use a slider ranging from 0 to 100) with reasonable support. For example, given our data, it would not make sense to use a standard deviation of 3 (as 95% of the mass of the distribution will only span mean+/- 2 * 3 values out of 100), but a standard deviation of 10 or 15 would make sense.
+Regarding the standard deviations of the emission distribution, define them such that the emission distribution for state 1 and 2 together cover the entire range of observations (recall that the response scale was a slider [0 to 100]). For example, given our data, it would not make sense to use a standard deviation of 3 (as 95% of the mass of the distribution will only span mean+/- 2 * 3 values out of 100); a standard deviation of 10 or 15 would make more sense.
 
-Also make sure that the combinations of starting values for the different variables are sensible, which is where theory comes in. It will not make sense, for example, to specify the starting values of State 1 such that it has a high mean for both 'happy' and 'depressed'.
 
 ---
 
@@ -201,7 +200,7 @@ apply(emotion_mHMM[, 2:5], 2, function(x){
 ## The lower proposed starting values for anxious and depressed are quite close to the boundary of 0, so we should bring the starting values for state 1 and 2 closer together for these variables.
 ```
 
-**B** Now, use the obtained values to create input for the model to use as starting values. First, set up the model input arguments: `m` for the number of states the model should infer, `n_dep` for the number of dependent variables used for fitting the model, and then the starting values for the emission distribution, saved in the object `start_emiss`. `start_emiss` should be a list with `n_dep` elements. Each element within the list should be a matrix with 2 columns and `m` rows. The means are contained in the first column of this matrix, and the standard deviations are contained in the second column of the matrix.
+**B** Now, specify the obtained values as starting values. First, set up the model input arguments: `m` for the number of states the model should infer, `n_dep` for the number of dependent variables used for fitting the model, and then the starting values for the emission distribution, which is provided in the object `start_emiss`. `start_emiss` should be a list with `n_dep` elements. Each element within the list should be a matrix with 2 columns and `m` rows. The means are contained in the first column of this matrix, and the standard deviations are contained in the second column of the matrix.
 
 ```{r, eval = FALSE}
 # setting up input parameters
@@ -232,7 +231,7 @@ start_emiss <- list(matrix(c(70, 15,                                     # happy
 
 The next step is to specify starting values for the transition probabilities. `start_gamma` should be a `m` by `m` matrix. The elements on each row should sum to 1.
 
-Make sure that the starting values are sensible. That is, for gamma, usually the elements contained on the diagonal (i.e., the self-transitions) are larger than the off-diagonal values to indicate that from one time point to another, subjects are more likely to remain in the same state than to switch to a new one.
+Make sure that the starting values are sensible. That is, for gamma, usually the elements contained on the diagonal (i.e., the self-transitions) are larger than the off-diagonal values to indicate that from one time point to another, subjects are more likely to remain in the same state than to switch to a new one, when time points are only a few hours apart as in most EMA studies.
 
 **C.** Set up the starting values for the transition probabilities in the object `start_gamma` using the starter code below.
 
@@ -251,7 +250,7 @@ start_gamma <- matrix(c(0.7, 0.3,
 
 ### Specifying Priors
 
-Since the *mHMMbayes* package uses Bayesian estimation, we need to set up priors for the model parameters. Ideally, when available, these reflect the prior knowledge about the parameters The prior for the transition distributions can be set manually using `prior_gamma()`, but we will use the default priors built in the function. For continuous data, the prior for the emission distribution must be set using the `prior_emiss_cont()` function.
+Since the *mHMMbayes* package uses Bayesian estimation, we need to set up priors for all model parameters. When available, priors allow us to incorporate existing knowledge and can be specified manually using `prior_gamma()` for the transition probability matrix, and `prior_emiss_cont()` for the emission distributions for continuous data. However, here we will use the default priors specified in those functions.
 
 **Exercise 5**
 Use the `help()` function to inspect the function `prior_emiss_cont()` and its arguments.
@@ -264,13 +263,13 @@ help(prior_emiss_cont)
 
 A few considerations should be made when setting up the priors.
 
-* emiss_mu0: the parameters specifying the means for the Normal emission distribution. The means should align with the hypothesized structure of a 'positive emotion' and a 'negative emotion' state. Do not use equivalent means over states within the same dependent variable. It should be a list of *n_dep* matrices (one for each observed variable), each with 1 row and *m* columns (one for each state). The first matrix for example, specifies the prior for the means of 'happy' in state 1 and state 2.
+* emiss_mu0: the parameters specifying the means for the Normal emission distribution. In our example, the means should align with the hypothesized structure of a 'positive emotion' and a 'negative emotion' state. Similar to the starting value, do not specify the same means for a given variable across states. It should be a list of *n_dep* matrices (one for each observed variable), each with 1 row and *m* columns (one for each state). The first matrix for example, specifies the prior for the means of 'happy' in state 1 and state 2.
 * emiss_K0: the parameters specifying the degrees of freedom for the prior on the means. This can be interpreted as the number of hypothetical observations the prior for the mean (emiss_mu0) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
 * emiss_V: the parameters specifying the hypothesized between-person variance for their means on each state. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
 * emiss_nu: the parameters specifying the degrees of freedom for the prior on the standard deviations. This can be interpreted as the number of hypothetical observations the prior for the variance (emiss_V) is based on. A higher value will make the prior more informative. It should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
 * emiss_a0 and emiss_b0: the parameters specifying respectively the shape and rate of the Inverse Gamma prior on the within-state variances. For an uninformative specification, this is generally set to a low number, such as 0.001 together with the emiss_b0 parameter. More sensible however, is to specify a weakly informative prior, determined by plotting combinations of values for 'emiss_a0' and 'emiss_b0. Both should be a list with *n_dep* elements (one for each observed variable), each containing a single value.
 
-Below, we show an example of such a plot for a weakly informative inverse gamma prior, with a shape of 1.5 and a rate of 20.
+Here, we show an example of such a plot for a weakly informative inverse gamma prior, with a shape of 1.5 and a rate of 20.
 
 ```{r, echo = FALSE}
 set.seed(42)
@@ -285,7 +284,7 @@ ggplot(data.frame(x = sample), aes(x=x)) + geom_density() +
 ---
 
 **Exercise 6**
-Set up a weakly informative prior for the continuous emission distribution using the function `prior_emiss_cont()` and save the object in `emotion_prior_emiss`. Keep the above considerations in mind. You will only have to fill in the dots below.
+Set up a weakly informative prior for the continuous emission distribution using the function `prior_emiss_cont()` and save the object in `emotion_prior_emiss`. Keep the above considerations in mind. We already provide the structure of the object and you only have to specify the priors as indicated above:
 
 ```{r, eval = FALSE}
 # specifying weakly informative prior for continuous emission distributions
@@ -323,23 +322,22 @@ emotion_prior_emiss <- prior_emiss_cont(
 
 ---
 
-## Fitting the multilevel hidden Markov model
+## Fitting the Multilevel Hidden Markov Model
 
-Now we will use all ingredients to fit a 2 state multilevel hidden Markov model using the function `mHMM()`. For now, set the number of iterations `J` as part of the input parameter `mcmc` to 500, and specify a burn in (`burn_in`) of 200. On a reasonably fast laptop, this should take about 10 minutes. In the meantime, you can have a nice conversation with your neighbor or workshop instructor :) . When fitting a multilevel hidden Markov model for research purposes, we recommend using at least 2.000 iterations, and using traceplots and the Gelman Rubin statistic to ensure convergence with the used number of iterations and the appropriate burn in period. We will discuss convergence in the second practical of this workshop.
+We are now ready to fit a 2-state multilevel Hidden Markov Model using the function `mHMM()`. For now, set the number of iterations `J` as part of the input parameter `mcmc` to 500, and specify a burn in (`burn_in`) of 200. On a reasonably fast laptop, this should take about 10 minutes. In the meantime, you can have a nice conversation with your neighbor or workshop instructor :-). When fitting a multilevel hidden Markov model for research purposes, we recommend using at least 2.000 iterations, and using traceplots and the Gelman Rubin statistic to ensure convergence with the used number of iterations and the appropriate burn in period. We will discuss convergence in more detail in the second practical of this workshop.
 
 ---
 
 **Exercise 7**
-Fit a 2 state multilevel hidden Markov model using the function `mHMM()`, and save your fitted model in an object named `out_2st_emotion`. See below for the general structure of the `mHMM()` function, you only have to fill in the dots. The provided code assumes continuous observations, no level 2 covariates and only a prior on the Normal emission distribution. 
+Fit a 2-state multilevel Hidden Markov Model using the function `mHMM()` and save your fitted model in an object named `out_2st_emotion`. See below for the general structure of the `mHMM()` function. The provided code assumes continuous observations, no level 2 covariates and only a prior on the Normal emission distribution.
 
 The function `mHMM()` takes the following arguments that are relevant for now:
 
-* s_data: the dataset to build the model for. The first column should contain the subject IDs, and the subsequent columns should contain the dependent variables.
-* data_distr: the distribution of the dependent variables. "continuous" in our case, but also takes "categorical" and "count".
+* s_data: the dataset to build the model for. The first column should contain the subject IDs, and the subsequent columns should contain the modeled (dependent) variables.
+* data_distr: the distribution of the dependent variables. Here we model variables as Gaussian distributions and choose "continuous" accordingly; but also "categorical" and "count" are options.
 * gen : a list containing the number of states `m` and the number of dependent variables `n_dep`.
 * start_val: a list of starting values with `n_dep` + 1 elements. The first element should contain the matrix of starting values for the transition probabilities. Subsequent elements should contain the starting values for the emission distributions for each of the dependent variables. It should not be a nested list (i.e. make sure it does not consist of lists within lists).
-* mcmc: a list containing the number of iterations `J` and the burn in period `burn_in`.
-
+* mcmc: a list with two entries, containing the number of iterations `J` and the burn in period `burn_in`.
 
 ```{r, eval = FALSE}
 # Run a model without covariate(s) and default priors:
@@ -404,7 +402,7 @@ emiss_group
 
 ## Visualizing the obtained output  
 
-Especially when you have a large number of states and/or a large number of dependent variables, visualizing the group level parameters can be very helpful. 
+Especially when you have a large number of states or/and a large number of dependent variables, visualizing the group level parameters can be very helpful. 
 
 In addition to some of the helper functions we provided, there is a package available on GitHub to visualize output created using the `mHMMbayes` package. You can load it as follows:
 
@@ -441,7 +439,7 @@ plot_dens(model = out_2st_emotion) # density plot
 
 ## Obtaining the most likely sequence of hidden states 
 
-Using the obtained (subject specific) parameter estimates and the complete sequence of observations for each subject, we can infer the most likely sequence of states for each subject. To obtain the probability of each state at each point in time (where the sequence of states with the highest probability forms the sequence of most likely states), we make use of the Viterbi algorithm (Viterbi, 1967). In the package `mHMMbayes`, (an extended version of) the Viterbi algorithm is implemented in the function `vit_mHMM()`. The required input is the object that contains the fitted model generated by the function `mHMM()`, and the data used as input when fitting the multilevel hidden Markov model.
+Using the obtained (subject specific) parameter estimates and the complete sequence of observations for each subject, we can infer the most likely sequence of states for each subject. To obtain the probability of each state at each point in time (where the sequence of states with the highest probability forms the sequence of most likely states), we make use of the Viterbi algorithm (Viterbi, 1967). In the package `mHMMbayes`, (an extended version of) the Viterbi algorithm is implemented in the function `vit_mHMM()`. The required input is the object that contains the fitted model, the output of the function `mHMM()`, and the data used as input when fitting the multilevel hidden Markov model. The function `vit_mHMM()` then returns the most likely state sequence for all subjects.
 
 The relevant arguments for the function `vit_mHMM()` are:
 
@@ -461,7 +459,7 @@ table(emotion_states_2st$subj, emotion_states_2st$state)
 
 ---
 
-To inspect the obtained most likely state sequences, plotting them is most useful. State sequences can be plotted per subject, or alternatively, together with the observed data. The *ggmHMM* package contains a function `plot_viterbi()`, which can be used to plot a barcode plot of the most likely state sequences over time. It takes the following arguments:
+To inspect the obtained most likely state sequences, plotting them is most useful. State sequences can be plotted per subject and optionally together with the observed time series data. The *ggmHMM* package contains a function `plot_viterbi()`, which can be used to plot a barcode plot of the most likely state sequences over time. It takes the following arguments:
 
 * states: the state sequences obtained using the function `vit_mHMM()`, or an object created using `mHMM()`.
 * s_data: a dataframe used to build the model. Not necessary when `states` is an object created using `vit_mHMM()`.
@@ -481,11 +479,14 @@ plot_viterbi(states = emotion_states_2st, subject = 1:10)
 
 ## Conclusion 
 
-In this first practical, we have loaded and inspected our data, fitted a simple 2 state multilevel hidden Markov model, investigated and visualized our group level parameters, and obtained (and visualized) the most likely sequence of hidden states. In the next practical, we well focus on the model selection problem (how many states should we use), obtaining and interpreting subject specific parameters, and model checking (inspecting convergence and using posterior predictive checks and pseudoresiduals to assure a good match between the model and the observed data). If you finished early with this part, feel free to already start on the second part (or take a slightly longer break).
+In this first practical, we have loaded and inspected our data, fitted a 2-state multilevel hidden Markov model, investigated and visualized our group level parameters, and obtained (and visualized) the most likely sequence of hidden states. 
+
+In the next practical, we will focus on the model selection problem (how many states should we use?), obtaining and interpreting subject-specific parameters, and model checking (inspecting convergence and label switching, and using posterior predictive checks and pseudoresiduals to evaluate different aspects of model fit). If you finished early with this part, feel free to already start on the second part.
 
 ---
 
 ## References
+
 - Aarts, E., & Haslbeck, J. M. B. (2025, April 3). Modelling Psychological Time Series with Multilevel Hidden Markov Models: A Numerical Evaluation and Tutorial. PsyArXiv Doi: 10.31234/osf.io/y2u5s_v2.
 - Haslbeck, J., Ryan, O., & Dablander, F. (2023). Multimodality and skewness in emotion time series. Emotion, 23(8), 2117–2141. DOI: 10.1037/emo0001218.
 - Rowland, Z. & Wenzel, M. (2020). Mindfulness and affect-network density: Does mindfulness facilitate disengagement from affective experiences in daily life?. Mindfulness, 11(5), 1253-1266. DOI: 10.1007/s12671-020-01335-4
