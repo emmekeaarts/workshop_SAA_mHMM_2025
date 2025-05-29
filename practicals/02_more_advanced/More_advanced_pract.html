@@ -1512,49 +1512,51 @@ put your answers in, called “Working Script Practical 2.Rmd.</p>
 matters: model selection, subject specific parameters, model
 diagnostics, and model fit. Note that we cover a lot of ground here,
 most likely too much to finish within this practical. All parts are
-modular, so you are invited to work on what interests you most. We
-continue with the same dataset: the open access dataset from Rowland and
-Wenzel (2020), using the subset of the affective experiences
+modular, so feel free to work on the aspects that are most relevant to
+you.</p>
+<p>We continue with the same dataset: the open access dataset from
+Rowland and Wenzel (2020), using the subset of the affective experiences
 <em>happy</em>, <em>relaxed</em>, <em>anxious</em>, and
 <em>depressed</em>, measured six times a day for 40 days in total.</p>
 <p>The answers to the practicals are available in the
 <code>*_answers.html</code> files.</p>
 <p>In all practicals in this workshop, we make use of the
-<code>mHMMbayes</code> package, version 1.1.0. You can load the package
-like</p>
+<code>mHMMbayes</code> package, version 1.1.0. We again load the
+package:</p>
 <pre class="r"><code>library(mHMMbayes)</code></pre>
 <p>In this practical, we will also use the following packages:</p>
 <pre class="r"><code># install.packages(&quot;coda&quot;)
 library(ggplot2) # for plotting
 library(ggmHMM) # plotting mHMM objects
-library(coda) # for assessing convergence</code></pre>
-<p>We will also, again, make use of our helper functions</p>
-<pre class="r"><code>source(&#39;./helpers.R&#39;)</code></pre>
+library(coda) # for assessing convergence
+
+source(&#39;./helpers.R&#39;) # Some helper functions</code></pre>
 <div id="subject-specific-parameters" class="section level2">
 <h2>Subject specific parameters</h2>
 <p>In this section, we obtain and inspect the subject specific
 parameters.</p>
 <div id="emission-distribution" class="section level3">
 <h3>Emission distribution</h3>
-<p>We first need to obtain the subject specific emission distribution
-parameters, and save the subject specific parameters in an object. When
-focusing on the emission distribution parameters, the function
-<code>obtain_emiss()</code> can be used to obtain the subject specific
-emission distribution parameters, by setting the input argument
-<code>level</code> to <code>&quot;subject&quot;</code>. Note that the default of
+<p>We first obtain the subject specific emission distribution parameters
+from the model output, and save the subject specific parameters in a new
+object. When focusing on the emission distribution parameters, the
+function <code>obtain_emiss()</code> can be used to obtain the subject
+specific emission distribution parameters, by setting the input argument
+<code>level=&quot;subject&quot;</code>. Note that the default of
 <code>level</code> is <code>&quot;group&quot;</code>, so when left unspecified,
 the function <code>obtain_emiss()</code> will return the group level
-emission distribution parameters.</p>
+emission distribution parameters, as we have seen in the first
+practical.</p>
 <hr />
-<p><strong>Exercise 1</strong> Obtain the subject specific emission
+<p><strong>Exercise 1</strong> Obtain the subject-specific emission
 distribution parameters using the function <code>obtain_emiss()</code>
 and set the input argument <code>level</code> to <code>&quot;subject&quot;</code>.
 Save the output in the object <code>emiss_subject</code>. Inspect the
 output.</p>
 <hr />
-<p>Again, to develop an intuition on how much the emission distribution
+<p>Again, to get an overview of how much the emission distribution
 parameters (e.g., the variable and state specific means) vary over
-subjects, it can be helpful to plot the subject specific emission
+subjects, it is helpful to plot the subject specific emission
 distribution parameters, for example by adding the subject specific
 parameters as dots to a group level barplot of the emission means. This
 can be done using the <em>ggmHMM</em> function
@@ -1568,48 +1570,50 @@ functions have the argument <code>subject</code>, which can be used to
 specify a vector of subjects to plot random effects for.</p>
 <hr />
 <p>In addition, it is important to check that the states represent the
-same construct over subjects. Working with our current dataset, that
-would mean that for each subject, state 1 represents a ‘good mood’
-state, and state 2 represents a ‘bad mood’ state. For example, for the
+same construct over subjects. In the current dataset, that would mean
+that for each subject, state 1 represents a ‘positive mood’ state, and
+state 2 represents a ‘negative mood’ state. For example, for the
 indicator <em>happy</em>, that would translate to the mean of state 1
 being higher compared to state 2. Visually, this can be checked by
 connecting the subject specific means over the states within one
-indicator by lines.</p>
+indicator by lines and assessing whether many lines are crossing (they
+should not!).</p>
 <hr />
 <p><strong>Exercise 3</strong> Plot (a subset of) the subject specific
 emission distribution means connecting the subject specific means, and
-visually investigate whether the state 1 is a relatively good state and
-state 2 a relatively bad state over subjects. Hint: this can be done by
-specifying <code>line = TRUE</code> in <code>plot_emiss()</code>.</p>
+visually investigate whether the state 1 is a relatively positive state
+and state 2 a relatively negative state over subjects. Hint: this can be
+done by specifying <code>line = TRUE</code> in
+<code>plot_emiss()</code>.</p>
 <hr />
 </div>
 <div id="transition-probabilities-gamma" class="section level3">
 <h3>Transition probabilities gamma</h3>
 <p>First, we need to obtain the subject specific parameters for the
-emissions and the transition probabilities. When focusing on the
-transition probabilities gamma, the function <code>obtain_gamma()</code>
-can also be used to obtain the subject specific transition
-probabilities, by setting the input argument <code>level</code> to
-<code>&quot;subject&quot;</code>. Note that the default of <code>level</code> is
-<code>&quot;group&quot;</code>, so when left unspecified, the function
-<code>obtain_gamma()</code> will return the group level transition
-probabilities.</p>
+emissions and the transition probabilities. Analogously to the emission
+parameters, the function <code>obtain_gamma()</code> can also be used to
+obtain the subject specific transition probabilities, by setting the
+input argument <code>level=&quot;subject&quot;</code>. Again, the default of
+<code>level</code> is <code>&quot;group&quot;</code>, so when left unspecified,
+the function <code>obtain_gamma()</code> will return the group level
+transition probabilities.</p>
 <hr />
 <p><strong>Exercise 4</strong> Obtain the subject specific transition
 probabilities using the function <code>obtain_gamma()</code> and set the
 input argument <code>level</code> to <code>&quot;subject&quot;</code>. Save the
 output in the object <code>gamma_subject</code>. Inspect the output.</p>
-<p>Note that it can be quite insightful to compare the subject specific
-transition probabilities to the plotted state sequences (see practical
-1). Subjects with large self-transitions (i.e., probabilities that
-denote a transition to the same state as the current state, provided on
-the diagonal of the transition probability matrix) will probably remain
-for a long time within a state, while low self-transition probabilities
-most likely will translate to state sequences where a state is only
-visited for a short consecutive sequence.</p>
+<p>Note that it can be insightful to compare the subject specific
+transition probabilities to the plotted state sequences (see first
+Practical). Subjects with large self-transitions (i.e., probabilities
+that denote a transition to the same state as the current state,
+provided on the diagonal of the transition probability matrix) will
+probably remain for a long time within a state, while low
+self-transition probabilities most likely will translate to state
+sequences where a state is only visited for a short consecutive
+sequence.</p>
 <hr />
 <p>To develop an intuition on how much the transition probabilities vary
-over subjects, it can be helpful to plot the subject specific state
+over subjects, it is useful to plot the subject specific state
 transition probabilities, for example in a heat map with one row per
 subject, or in stacked dots with a dot for each subject specific
 transition probability, and columns for each of the possible state
@@ -1619,7 +1623,7 @@ transitions.</p>
 transition probabilities, and investigate how much the transition
 probabilities differ over subjects. This can be done in 2 ways:</p>
 <ul>
-<li>With the helper function <code>PlotTrans()</code>, a barplot may be
+<li>With the helper function <code>PlotTrans()</code>, a bar plot may be
 plotted showing the group level effects, with points for the
 subject-specific effects (or a subset thereof). It uses the following
 arguments:
@@ -1653,8 +1657,9 @@ stability/duration of states), but the off-diagonals do not provide us
 with unique information; if a subject goes out of the state, they only
 have one left to go to. A three-state model may have more interesting
 information to provide. It could tell us, for example, whether a subject
-is more likely to immediately switch between a ‘good’ and a ‘bad’ state,
-or whether they generally move through a ‘medium’ state first.</p>
+is more likely to immediately switch between a ‘positive’ and a
+‘negative’ state, or whether they generally move through a ‘medium’
+state first.</p>
 <hr />
 </div>
 </div>
@@ -1662,15 +1667,18 @@ or whether they generally move through a ‘medium’ state first.</p>
 <h2>Model selection</h2>
 <div id="fit-models-with-a-plausible-number-of-states" class="section level3">
 <h3>Fit models with a plausible number of states</h3>
-<p>One of the challenges when using hidden Markov models is the number
-of states to choose. Here, we will limit ourselves to models with 2, 3,
-and 4 states. As checking model fit is discussed at a later point in the
-practical, we will investigate the different models based on the state
-composition and the AIC. However, it should be noted that convergence
-and model fit are important characteristics that should be considered
-when choosing a model to interpret. The 2-state model was fitted in the
-first practical, and saved in the object
-<code>out_2st_emotion</code>.</p>
+<p>One of the challenges when using hidden Markov models is that in most
+cases we do not know how many states we should choose and therefore need
+to learn the number of states from the data. Here, we assume that only a
+model with 2, 3, or 4 states is plausible and will perform model
+selection between those models. However, the model selection discussed
+here naturally extends to any sequence of candidate models.</p>
+<p>As checking model fit is discussed at a later point in the practical,
+we will investigate the different models based on the state composition
+and the AIC. However, it should be noted that convergence and model fit
+are important characteristics that should be considered when choosing a
+model to interpret. The 2-state model was fitted in the first practical,
+and saved in the object <code>out_2st_emotion</code>.</p>
 <hr />
 <p><strong>Exercise 7</strong> To save time we have already pre-run a
 3-state and 4-state model. Use the function <code>readRDS()</code> to
@@ -1789,12 +1797,12 @@ selection criterion AIC.</p>
 <p><strong>Exercise 10</strong> Obtain the AIC values of the 2-, 3-, and
 4-state model using the <code>print()</code> function on the mHMM
 objects <code>out_2st_emotion</code>, <code>out_3st_emotion</code>,
-<code>out_4st_emotion</code>, and compare. It can be helpful to
-visualize the AIC values over the states to get a feeling for how much
-the AIC decreases over the models.</p>
+<code>out_4st_emotion</code>, and compare the models. It can be helpful
+to visualize the AIC values over the states:</p>
 <hr />
-<p>As you can see, determining the number of states can be a subjective
-and tricky endeavor, and depends very much on the data and research
+<p>Determining the number of states is often not a trivial task and
+typically involves several considerations (including model fit and fit
+indices like the AIC) that themselves often depend on the research
 question at hand.</p>
 </div>
 </div>
@@ -1807,13 +1815,13 @@ and evaluating Pseudo residuals.</p>
 <h3>Convergence</h3>
 <p>Within any Bayesian analysis, convergence needs to be assessed in
 order to rule out output resulting from a local (instead of global)
-maximum. To check this, multiple chains (now we will use 2, but we
-recommend using at least 4) need to be run, performing the same analysis
-but using (slightly) different starting values in each chain. Note that
-in multilevel hidden Markov models, it is important to still keep
-sensible starting values when varying these. For example, when modelling
-continuous or count data, we need to keep the same sensible ordering of
-<span class="math inline">\(\bar{\mu}_i\)</span> or <span class="math inline">\(\bar{\lambda}_i\)</span> given data and process.
+maximum. To check this, multiple chains (here we will use 2 for
+simplicity, but we recommend using at least 4) need to be run,
+performing the same analysis but using (slightly) different starting
+values in each chain. Note that in multilevel hidden Markov models, it
+is important to still keep sensible starting values when varying these.
+For example, when modelling continuous or count data, we need to keep
+the same sensible ordering of <span class="math inline">\(\bar{\mu}_i\)</span> or <span class="math inline">\(\bar{\lambda}_i\)</span> given data and process.
 Values of the (weakly informative) prior distributions should be fixed
 over the chains.</p>
 <hr />
@@ -1857,7 +1865,7 @@ way is, using trace plots which visualize the parameter estimates over
 the iterations of the MCMC sampler. The chains should not show any trend
 and good mixing. Furthermore, we should have no label switching (or at
 least very little) in the subject-specific parameters (see the section
-‘label switching’ later in the practical)..</p>
+‘label switching’ below).</p>
 <p>The trace plots can be obtained using the <em>ggmHMM</em> function
 <code>plot_trace()</code>. For now, the following arguments are
 relevant:</p>
@@ -1892,8 +1900,8 @@ scale reduction factor <span class="math inline">\(\hat{R}\)</span>.
 <span class="math inline">\(\hat{R}\)</span> evaluates equality of means
 of the different chains - the degree to which variance (of the means)
 between chains exceeds what one would expect if the chains were
-identically distributed. A value of R-hat below 1.2 is used to indicate
-convergence.</p>
+identically distributed. A value of R-hat below 1.2 is typically used as
+a rule of thumb to indicate convergence.</p>
 <p>We have provided you with a helper function, <code>f_GR()</code>, to
 calculate the group level <span class="math inline">\(\hat{R}\)</span>
 values. The function takes the following arguments:</p>
@@ -1923,20 +1931,20 @@ means. Did the model reach convergence?</p>
 <h3>Label Switching</h3>
 <p>A concept related to convergence is that of label switching. In a
 multilevel HMM, it does not matter for the model what the ordering of
-the states is. For example, a model where State 1 is the ‘good’ state
-(e.g. with high “happy” and low “depressed”), and state 2 the ‘bad’
-state, or whether it is the other way around. In the iterative MCMC
-process, the model may switch the labels of the states over iterations,
-and therefore the interpretation of the states. This is called label
-switching. In the mHMM, label switching happens at the subject level,
-but consequently also affects estimates of the group-level effects. It
-is important to check to what extent this happens.</p>
-<p>To check for label switching, it is helpful to use trace plots for
-the subject-level parameters, similar to those from last exercise. It
-may, however, be useful here to show the trace plots from multiple
-states in a single plot, to see whether the states switch labels. This
-can be done with the helper function
-<code>plot_label_switching()</code>.</p>
+the states is. For example, a model where State 1 is the ‘positive’
+state (e.g. with high “happy” and low “depressed”), and state 2 the
+‘negative’ state, or whether it is the other way around. In the
+iterative MCMC process, the model may switch the labels of the states
+over iterations, and therefore the interpretation of the states. This is
+called label switching. In the mHMM, label switching happens at the
+subject level, but consequently also affects estimates of the
+group-level effects. It is important to check to what extent this
+happens.</p>
+<p>To check for label switching, inspect trace plots for the
+subject-level parameters, similar to those from last exercise. Ideally
+one displayes trace plots from multiple states in a single plot to
+better see whether the states switch labels. This can be done with the
+helper function <code>plot_label_switching()</code>.</p>
 <p><code>plot_label_switching()</code> takes as arguments: * model:
 output object from <code>mHMM()</code> * subject: a vector of integers
 to select the subjects to create plots for. * vrb: a character vector to
@@ -1980,14 +1988,9 @@ columns (mean and sd) and m rows (number of states).</li>
 <li>var_gamma: variance of transition probabilities.</li>
 <li>var_emiss: variance of emission probabilities.</li>
 </ul>
-<p><em>Note.</em> In the data, there is some observed missingness,
-including the night gap. For now, we simulate data without the night gap
-and ignore the missingness. Although it will likely make little
-difference, it may be sensible to insert missing values in places where
-the data are missing when performing PPCs on your own data.</p>
 <hr />
-<p><strong>Exercise 17</strong> Use the starter script below to simulate
-100 datasets based on the model parameters of the 2-state multilevel
+<p><strong>Exercise 17</strong> Use the script below to simulate 100
+datasets based on the model parameters of the 2-state multilevel
 HMM.</p>
 <pre class="r"><code>n_sim &lt;- 100 # for now, we will use 100 simulated datasets, but feel free to change. 
 sim_datasets &lt;- vector(&quot;list&quot;, n_sim)
@@ -2101,8 +2104,13 @@ over time (can also be assessed using the autocorrelation). 3. Whether
 there are any outliers. 4. Whether variance is (roughly) stable over
 time.</p>
 <p>We have provided you with a helper function,
-<code>PlotResid()</code>, to plot the pseudoresiduals. It takes the
-following arguments:</p>
+<code>PlotResid()</code>, to plot the pseudoresiduals. Visually
+inspecting the predictions vs. the respective empirical data and the
+residuals is useful because it allows us not only to judge how well the
+model predicts, but also in which way predictions fail. This, in turn,
+may allow us to improve the model or at least draw the correct
+conclusions from the current model.</p>
+<p><code>PlotResid()</code> takes the following arguments:</p>
 <ul>
 <li>model: output model from <code>mHMM()</code></li>
 <li>data: a data frame used to build the model.</li>
